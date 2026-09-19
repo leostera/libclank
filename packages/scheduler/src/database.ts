@@ -6,6 +6,10 @@ export interface SchedulerDatabase {
   register(manifest: WorkflowManifest): Promise<void>
   definition(hash: WorkflowDefinitionHash): Promise<WorkflowManifest | undefined>
   createRun(run: WorkflowRunRecord): Promise<void>
+  updateRun?(
+    runId: WorkflowRunRecord["id"],
+    patch: Partial<Pick<WorkflowRunRecord, "status" | "updatedAt">>,
+  ): Promise<void>
   getRun(runId: WorkflowRunRecord["id"]): Promise<WorkflowRunRecord | undefined>
   putNode(instance: NodeInstanceRecord): Promise<void>
   getNode(instanceId: string): Promise<NodeInstanceRecord | undefined>

@@ -5,6 +5,7 @@ export * from "./execution-key.js"
 export * from "./manifest.js"
 export * from "./run-state.js"
 export * from "./sqlite-schema.js"
+export * from "./trigger-scheduler.js"
 
 import { Effect } from "effect"
 import type { EventId, NodeId, RunId, TriggerId, WorkflowRun } from "@libclank/core"

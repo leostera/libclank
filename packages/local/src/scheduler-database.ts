@@ -34,6 +34,19 @@ export const createLocalSchedulerDatabase = (path = resolve(".clank/scheduler.sq
         "INSERT INTO workflow_runs (run_id, definition_hash, status, input_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
       ).run(run.id, run.workflowDefinitionHash, run.status, JSON.stringify(run.input), run.createdAt, run.updatedAt)
     },
+    async updateRun(id, patch) {
+      const fields: string[] = []
+      const values: unknown[] = []
+      if (patch.status !== undefined) {
+        fields.push("status=?")
+        values.push(patch.status)
+      }
+      if (patch.updatedAt !== undefined) {
+        fields.push("updated_at=?")
+        values.push(patch.updatedAt)
+      }
+      if (fields.length) db.prepare(`UPDATE workflow_runs SET ${fields.join(",")} WHERE run_id=?`).run(...values, id)
+    },
     async getRun(id) {
       const row = db.prepare("SELECT * FROM workflow_runs WHERE run_id=?").get(id) as RunRow | undefined
       return row ? hydrateRun(row) : undefined
