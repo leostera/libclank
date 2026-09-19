@@ -29,6 +29,12 @@ export const Id = {
   name: (value: DefinitionId): string => parseDefinition(value).name,
   kind: (value: DefinitionId): DefinitionKind => parseDefinition(value).kind,
   run: (): RunId => crypto.randomUUID() as RunId,
+  runFrom: (value: string): RunId =>
+    isUuid(value)
+      ? (value as RunId)
+      : (() => {
+          throw new Error(`Invalid run ID: ${value}`)
+        })(),
   event: (): EventId => crypto.randomUUID() as EventId,
 }
 
@@ -64,6 +70,10 @@ function parseDefinition(value: string): ParsedDefinitionId {
 
 function isDefinitionKind(value: string): value is DefinitionKind {
   return value === "node" || value === "trigger" || value === "workflow" || value === "agent" || value === "artifact"
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
 
 function normalizeName(value: string): string {

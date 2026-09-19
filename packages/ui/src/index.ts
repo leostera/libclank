@@ -1,3 +1,6 @@
+export { createDashboardApi } from "./api.js"
+export { Dashboard, type DashboardProps } from "./Dashboard.js"
+
 import type { RunId } from "@libclank/core"
 import type { SchedulerOperations } from "@libclank/scheduler"
 
