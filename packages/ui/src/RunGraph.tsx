@@ -6,11 +6,13 @@ import "@xyflow/react/dist/style.css"
 const Run = Schema.Struct({ id: Schema.String, workflowDefinitionHash: Schema.String, status: Schema.String })
 const Task = Schema.Struct({ id: Schema.String, description: Schema.String, dependencies: Schema.Array(Schema.String) })
 const Trigger = Schema.Struct({ id: Schema.String, kind: Schema.String, path: Schema.optional(Schema.String) })
+const Edge = Schema.Struct({ from: Schema.String, to: Schema.String, kind: Schema.String })
 const Manifest = Schema.Struct({
   workflowId: Schema.String,
   definitionHash: Schema.String,
   triggers: Schema.Array(Trigger),
   tasks: Schema.Array(Task),
+  edges: Schema.Array(Edge),
 })
 const Instance = Schema.Struct({ nodeId: Schema.String, status: Schema.String, attempt: Schema.Number })
 type Run = Schema.Schema.Type<typeof Run>
@@ -63,23 +65,16 @@ export const RunGraph = ({ runId, apiBase = "/api" }: RunGraphProps) => {
     })
     return [...triggerNodes, ...taskNodes]
   }, [instances, manifest])
-  const edges = useMemo<Edge[]>(() => {
-    const triggerEdges = (manifest?.triggers ?? []).map((trigger) => ({
-      id: `trigger:${trigger.id}->${trigger.id}`,
-      source: `trigger:${trigger.id}`,
-      target: `libclank://node/${trigger.id.replace(/^libclank:\/\/trigger\//, "")}`,
-      animated: false,
-    }))
-    const taskEdges = (manifest?.tasks ?? []).flatMap((task) =>
-      task.dependencies.map((dependency) => ({
-        id: `${dependency}->${task.id}`,
-        source: dependency,
-        target: task.id,
-        animated: instances.find((item) => item.nodeId === task.id)?.status === "running",
+  const edges = useMemo<Edge[]>(
+    () =>
+      (manifest?.edges ?? []).map((edge) => ({
+        id: `${edge.from}->${edge.to}`,
+        source: edge.kind === "trigger" ? `trigger:${edge.from}` : edge.from,
+        target: edge.to,
+        animated: instances.find((item) => item.nodeId === edge.to)?.status === "running",
       })),
-    )
-    return [...triggerEdges, ...taskEdges]
-  }, [instances, manifest])
+    [instances, manifest],
+  )
   if (!run || !manifest) return <p>Loading run graph…</p>
   return (
     <section style={{ height: 600 }}>
