@@ -5,7 +5,13 @@ import "@xyflow/react/dist/style.css"
 
 const Run = Schema.Struct({ id: Schema.String, workflowDefinitionHash: Schema.String, status: Schema.String })
 const Task = Schema.Struct({ id: Schema.String, description: Schema.String, dependencies: Schema.Array(Schema.String) })
-const Manifest = Schema.Struct({ workflowId: Schema.String, definitionHash: Schema.String, tasks: Schema.Array(Task) })
+const Trigger = Schema.Struct({ id: Schema.String, kind: Schema.String, path: Schema.optional(Schema.String) })
+const Manifest = Schema.Struct({
+  workflowId: Schema.String,
+  definitionHash: Schema.String,
+  triggers: Schema.Array(Trigger),
+  tasks: Schema.Array(Task),
+})
 const Instance = Schema.Struct({ nodeId: Schema.String, status: Schema.String, attempt: Schema.Number })
 type Run = Schema.Schema.Type<typeof Run>
 type Manifest = Schema.Schema.Type<typeof Manifest>
@@ -39,31 +45,41 @@ export const RunGraph = ({ runId, apiBase = "/api" }: RunGraphProps) => {
     const timer = setInterval(load, 2000)
     return () => clearInterval(timer)
   }, [apiBase, runId])
-  const nodes = useMemo<FlowNode[]>(
-    () =>
-      (manifest?.tasks ?? []).map((task, index) => {
-        const instance = instances.find((item) => item.nodeId === task.id)
-        return {
-          id: task.id,
-          position: { x: (index % 3) * 260, y: Math.floor(index / 3) * 140 },
-          data: { label: `${task.description}\n${instance?.status ?? "pending"} · attempt ${instance?.attempt ?? 0}` },
-          style: { whiteSpace: "pre-line", borderColor: color(instance?.status) },
-        }
-      }),
-    [instances, manifest],
-  )
-  const edges = useMemo<Edge[]>(
-    () =>
-      (manifest?.tasks ?? []).flatMap((task) =>
-        task.dependencies.map((dependency) => ({
-          id: `${dependency}->${task.id}`,
-          source: dependency,
-          target: task.id,
-          animated: instances.find((item) => item.nodeId === task.id)?.status === "running",
-        })),
-      ),
-    [instances, manifest],
-  )
+  const nodes = useMemo<FlowNode[]>(() => {
+    const triggerNodes = (manifest?.triggers ?? []).map((trigger, index) => ({
+      id: `trigger:${trigger.id}`,
+      position: { x: index * 260, y: 0 },
+      data: { label: `⚡ ${trigger.kind}\n${trigger.path ?? trigger.id}` },
+      style: { borderColor: "#7c3aed", whiteSpace: "pre-line" },
+    }))
+    const taskNodes = (manifest?.tasks ?? []).map((task, index) => {
+      const instance = instances.find((item) => item.nodeId === task.id)
+      return {
+        id: task.id,
+        position: { x: (index % 3) * 260, y: 140 + Math.floor(index / 3) * 140 },
+        data: { label: `${task.description}\n${instance?.status ?? "pending"} · attempt ${instance?.attempt ?? 0}` },
+        style: { whiteSpace: "pre-line", borderColor: color(instance?.status) },
+      }
+    })
+    return [...triggerNodes, ...taskNodes]
+  }, [instances, manifest])
+  const edges = useMemo<Edge[]>(() => {
+    const triggerEdges = (manifest?.triggers ?? []).map((trigger) => ({
+      id: `trigger:${trigger.id}->${trigger.id}`,
+      source: `trigger:${trigger.id}`,
+      target: `libclank://node/${trigger.id.replace(/^libclank:\/\/trigger\//, "")}`,
+      animated: false,
+    }))
+    const taskEdges = (manifest?.tasks ?? []).flatMap((task) =>
+      task.dependencies.map((dependency) => ({
+        id: `${dependency}->${task.id}`,
+        source: dependency,
+        target: task.id,
+        animated: instances.find((item) => item.nodeId === task.id)?.status === "running",
+      })),
+    )
+    return [...triggerEdges, ...taskEdges]
+  }, [instances, manifest])
   if (!run || !manifest) return <p>Loading run graph…</p>
   return (
     <section style={{ height: 600 }}>

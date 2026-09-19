@@ -1,6 +1,7 @@
 import { mkdir } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { Task } from "@libclank/agent"
+import { Schema } from "effect"
 import { createTriggerApp } from "@libclank/cloudflare"
 import { Id, Triggers } from "@libclank/core"
 import {
@@ -18,6 +19,7 @@ import { createDashboardApi, createDashboardAssetHandler } from "@libclank/ui"
 type SourceRequest = { readonly url: string; readonly path: string }
 type MarkdownArtifact = { readonly url: string; readonly path: string }
 type AnalysisArtifact = { readonly path: string }
+const SourceBody = Schema.Struct({ url: Schema.String })
 
 const artifactDirectory = resolve("parallel-analysis-artifacts")
 
@@ -48,8 +50,7 @@ const trigger = Triggers.webhook<SourceRequest>({
   id: Id.trigger("analyze-url"),
   path: "/hooks/analyze-url",
   decode: async (request) => {
-    const body = (await request.json()) as { url?: unknown }
-    if (typeof body.url !== "string") throw new Error("Expected JSON body with a url string")
+    const body = await Schema.decodeUnknownPromise(SourceBody)(await request.json())
     new URL(body.url)
     await mkdir(artifactDirectory, { recursive: true })
     return { url: body.url, path: artifactPath("source") }

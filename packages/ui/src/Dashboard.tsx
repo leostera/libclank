@@ -18,7 +18,7 @@ export interface DashboardProps {
 export const Dashboard = ({ apiBase = "/api" }: DashboardProps) => {
   const [runs, setRuns] = useState<readonly Run[]>([])
   const [workflows, setWorkflows] = useState<readonly Workflow[]>([])
-  const [input, setInput] = useState("{}")
+  const [input, setInput] = useState('{"url":"https://example.com"}')
   const triggerRun = async (triggerId: string) => {
     await fetch(`${apiBase}/triggers/${encodeURIComponent(triggerId)}`, {
       method: "POST",
