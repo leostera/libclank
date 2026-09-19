@@ -50,6 +50,13 @@
         "effect": "4.0.0-rc.116",
       },
     },
+    "packages/artifacts": {
+      "name": "@libclank/artifacts",
+      "version": "0.0.0",
+      "dependencies": {
+        "@libclank/core": "workspace:*",
+      },
+    },
     "packages/cloudflare": {
       "name": "@libclank/cloudflare",
       "version": "0.0.0",
@@ -80,6 +87,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@libclank/agent": "workspace:*",
+        "@libclank/artifacts": "workspace:*",
         "effect": "4.0.0-rc.116",
       },
     },
@@ -250,6 +258,8 @@
     "@libclank/app-agent": ["@libclank/app-agent@workspace:apps/agent"],
 
     "@libclank/app-scheduler": ["@libclank/app-scheduler@workspace:apps/scheduler"],
+
+    "@libclank/artifacts": ["@libclank/artifacts@workspace:packages/artifacts"],
 
     "@libclank/cloudflare": ["@libclank/cloudflare@workspace:packages/cloudflare"],
 
