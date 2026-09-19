@@ -2,6 +2,10 @@ export { createDashboardApi } from "./api.js"
 export { Dashboard, type DashboardProps } from "./Dashboard.js"
 export { RunGraph, type RunGraphProps } from "./RunGraph.js"
 
+/** HTML shell for the bundled React dashboard client. */
+export const reactDashboardHtml = (scriptPath = "/ui.js"): string =>
+  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>LibClank</title></head><body><div id="root"></div><script type="module" src="${scriptPath}"></script></body></html>`
+
 import type { RunId } from "@libclank/core"
 import type { SchedulerOperations } from "@libclank/scheduler"
 

@@ -66,7 +66,10 @@ export const Dashboard = ({ apiBase = "/api" }: DashboardProps) => {
           <ul>
             {runs.map((run) => (
               <li key={run.id}>
-                <strong>{run.status}</strong> <code>{run.id}</code>
+                <strong>{run.status}</strong>{" "}
+                <a href={`#/runs/${encodeURIComponent(run.id)}`}>
+                  <code>{run.id}</code>
+                </a>
                 <time>{new Date(run.createdAt).toLocaleString()}</time>
               </li>
             ))}

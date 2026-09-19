@@ -13,7 +13,7 @@ import {
   openFile,
 } from "@libclank/local"
 import { createDurableScheduler } from "@libclank/scheduler"
-import { createDashboardApi, dashboardHtml } from "@libclank/ui"
+import { createDashboardApi } from "@libclank/ui"
 
 type SourceRequest = { readonly url: string; readonly path: string }
 type MarkdownArtifact = { readonly url: string; readonly path: string }
@@ -102,7 +102,7 @@ const operations = {
   trigger: (triggerId: string, input: unknown) => scheduler.runTrigger(Id.trigger(triggerId), input),
 }
 app.route("/api", createDashboardApi(operations))
-app.get("/", () => new Response(dashboardHtml("/api"), { headers: { "content-type": "text/html; charset=utf-8" } }))
+app.get("/", (context) => context.json({ dashboard: "http://localhost:5173", api: "http://localhost:8789" }))
 
 Bun.serve({ port: 8789, fetch: app.fetch })
 console.log("Local LibClank parallel-analysis server listening on http://localhost:8789")
