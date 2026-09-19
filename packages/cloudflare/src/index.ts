@@ -1,3 +1,5 @@
+export * from "./durable-scheduler.js"
+
 import { Hono } from "hono"
 import { Effect } from "effect"
 import type { AgentEndpoint, AgentTaskRequest, AgentTaskResponse } from "@libclank/agent"
