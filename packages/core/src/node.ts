@@ -16,6 +16,7 @@ export type NodeFunction<Input, Output> = (input: Input, context?: ExecutionCont
 /** Source-defined metadata persisted by durable schedulers; executable closures are never persisted. */
 export interface NodeDefinition {
   readonly id: NodeId
+  readonly stepId: NodeId
   readonly description: string
   readonly version: string
   readonly cache: "never" | "by-input"
@@ -43,6 +44,7 @@ export class Node<Input, Output> {
     readonly observable = true,
     readonly definition: NodeDefinition = {
       id,
+      stepId: id,
       description: Id.name(id),
       version: "1",
       cache: "never",
@@ -127,8 +129,19 @@ export class Node<Input, Output> {
         Effect.flatMap(this.execute(input, context), (output) => Effect.as(effect.execute(output, context), output)),
       this.triggers,
       false,
-      { ...this.definition, id: Id.childNode(this.id, "tap"), dependencies: [this.id, effect.id] },
-      [...this.definitions, ...effect.definitions],
+      {
+        ...this.definition,
+        id: Id.childNode(this.id, "tap"),
+        stepId: Id.childNode(this.id, "tap"),
+        dependencies: [this.id, effect.id],
+      },
+      [
+        ...this.definitions,
+        ...effect.definitions.map((definition) => ({
+          ...definition,
+          stepId: Id.childNode(Id.childNode(this.id, "tap"), Id.name(definition.stepId)),
+        })),
+      ],
     )
   }
 

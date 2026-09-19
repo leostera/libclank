@@ -4,7 +4,12 @@ import { Background, Controls, ReactFlow, type Edge, type Node as FlowNode } fro
 import "@xyflow/react/dist/style.css"
 
 const Run = Schema.Struct({ id: Schema.String, workflowDefinitionHash: Schema.String, status: Schema.String })
-const Task = Schema.Struct({ id: Schema.String, description: Schema.String, dependencies: Schema.Array(Schema.String) })
+const Task = Schema.Struct({
+  id: Schema.String,
+  stepId: Schema.optional(Schema.String),
+  description: Schema.String,
+  dependencies: Schema.Array(Schema.String),
+})
 const Trigger = Schema.Struct({ id: Schema.String, kind: Schema.String, path: Schema.optional(Schema.String) })
 const Edge = Schema.Struct({ from: Schema.String, to: Schema.String, kind: Schema.String })
 const Manifest = Schema.Struct({
@@ -55,9 +60,9 @@ export const RunGraph = ({ runId, apiBase = "/api" }: RunGraphProps) => {
       style: { borderColor: "#7c3aed", whiteSpace: "pre-line" },
     }))
     const taskNodes = manifest.tasks.map((task) => {
-      const instance = instances.find((item) => item.nodeId === task.id)
+      const instance = instances.find((item) => item.nodeId === task.id || item.nodeId === task.stepId)
       return {
-        id: task.id,
+        id: task.stepId ?? task.id,
         data: { label: `${task.description}\n${instance?.status ?? "pending"} · attempt ${instance?.attempt ?? 0}` },
         style: { whiteSpace: "pre-line", borderColor: color(instance?.status) },
       }
@@ -103,7 +108,7 @@ export const RunGraph = ({ runId, apiBase = "/api" }: RunGraphProps) => {
       (manifest?.edges ?? []).map((edge) => ({
         id: `${edge.from}->${edge.to}`,
         source: edge.kind === "trigger" ? `trigger:${edge.from}` : edge.from,
-        target: edge.to,
+        target: manifest?.tasks.find((task) => task.id === edge.to)?.stepId ?? edge.to,
         animated: instances.find((item) => item.nodeId === edge.to)?.status === "running",
       })),
     [instances, manifest],

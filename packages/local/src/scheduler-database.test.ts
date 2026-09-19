@@ -22,6 +22,7 @@ describe("local scheduler database", () => {
       tasks: [
         {
           id: task,
+          stepId: task,
           description: "test",
           version: "1",
           cache: "by-input",

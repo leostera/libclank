@@ -58,7 +58,7 @@ function compositionEdges(tasks: readonly NodeDefinition[]): WorkflowManifestEdg
 
 /** Builds a stable, hashable manifest from source-defined task and trigger metadata. */
 export const createWorkflowManifest = async (source: WorkflowManifestSource): Promise<WorkflowManifest> => {
-  const allTasks = [...new Map(source.tasks.map((task) => [task.id, task])).values()]
+  const allTasks = [...new Map(source.tasks.map((task) => [task.stepId, task])).values()]
   const tasks = allTasks
     .filter((task) => !isComposition(task.id))
     .sort((left, right) => left.id.localeCompare(right.id))
