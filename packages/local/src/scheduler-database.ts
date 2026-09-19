@@ -93,6 +93,11 @@ export const createLocalSchedulerDatabase = (path = resolve(".clank/scheduler.sq
         Date.now(),
       )
     },
+    async putDependency(runId, nodeInstanceId, dependsOnInstanceId) {
+      db.prepare(
+        "INSERT OR IGNORE INTO node_dependencies (run_id, node_instance_id, depends_on_instance_id) VALUES (?, ?, ?)",
+      ).run(runId, nodeInstanceId, dependsOnInstanceId)
+    },
     async getNode(id) {
       const row = db.prepare("SELECT * FROM node_instances WHERE instance_id=?").get(id) as NodeRow | undefined
       return row ? hydrateNode(row) : undefined
