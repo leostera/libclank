@@ -1,4 +1,5 @@
 export * from "./database.js"
+export * from "./durable.js"
 export * from "./execution-key.js"
 export * from "./manifest.js"
 export * from "./run-state.js"
