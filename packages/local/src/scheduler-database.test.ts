@@ -19,7 +19,16 @@ describe("local scheduler database", () => {
     const task = Id.node("test-task")
     const workflow = await createWorkflowManifest({
       workflowId: Id.workflow("test"),
-      tasks: [{ id: task, description: "test", version: "1", cache: "by-input" }],
+      tasks: [
+        {
+          id: task,
+          description: "test",
+          version: "1",
+          cache: "by-input",
+          dependencies: [],
+          retry: { maxAttempts: 1, backoffMs: 1000 },
+        },
+      ],
     })
     await database.register(workflow)
     const runId = Id.run()

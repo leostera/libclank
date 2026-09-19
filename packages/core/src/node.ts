@@ -19,6 +19,8 @@ export interface NodeDefinition {
   readonly description: string
   readonly version: string
   readonly cache: "never" | "by-input"
+  readonly dependencies: readonly NodeId[]
+  readonly retry: { readonly maxAttempts: number; readonly backoffMs: number }
 }
 
 export interface TriggerDefinition<Output = unknown> {
@@ -38,7 +40,15 @@ export class Node<Input, Output> {
     run: NodeFunction<Input, Output>,
     readonly triggers: readonly TriggerDefinition[] = [],
     readonly observable = true,
-    readonly definition: NodeDefinition = { id, description: Id.name(id), version: "1", cache: "never" },
+    readonly definition: NodeDefinition = {
+      id,
+      description: Id.name(id),
+      version: "1",
+      cache: "never",
+      dependencies: [],
+      retry: { maxAttempts: 1, backoffMs: 1000 },
+    },
+    readonly definitions: readonly NodeDefinition[] = [definition],
   ) {
     this.execute = (input, context) => {
       const observer = context?.observer

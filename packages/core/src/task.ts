@@ -9,6 +9,7 @@ export type TaskOptions<Input, Output> = {
   readonly version?: string
   /** Only use `by-input` for work with reusable immutable outputs. */
   readonly cache?: NodeDefinition["cache"]
+  readonly retry?: NodeDefinition["retry"]
 }
 
 export const Task = {
@@ -41,5 +42,7 @@ function definition<Input, Output>(options: TaskOptions<Input, Output>): NodeDef
     description: options.description ?? options.id,
     version: options.version ?? "1",
     cache: options.cache ?? "never",
+    dependencies: [],
+    retry: options.retry ?? { maxAttempts: 1, backoffMs: 1000 },
   }
 }
