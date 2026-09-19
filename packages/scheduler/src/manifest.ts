@@ -38,11 +38,11 @@ function isComposition(id: string): boolean {
 function compositionEdges(tasks: readonly NodeDefinition[]): WorkflowManifestEdge[] {
   const byId = new Map(tasks.map((task) => [task.id, task]))
   const output = (id: string): string => {
-    const task = byId.get(id)
+    const task = byId.get(Id.node(id))
     return task && /(then|tap)$/.test(id) && task.dependencies[1] ? output(task.dependencies[1]) : id
   }
   const input = (id: string): string => {
-    const task = byId.get(id)
+    const task = byId.get(Id.node(id))
     return task && /(then|tap)$/.test(id) && task.dependencies[0] ? input(task.dependencies[0]) : id
   }
   return tasks.flatMap((task) => {
