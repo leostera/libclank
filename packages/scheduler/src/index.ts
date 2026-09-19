@@ -1,3 +1,5 @@
+export * from "./manifest.js"
+
 import { Effect } from "effect"
 import type { EventId, NodeId, RunId, TriggerId, WorkflowRun } from "@libclank/core"
 
