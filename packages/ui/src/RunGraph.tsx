@@ -85,11 +85,17 @@ export const RunGraph = ({ runId, apiBase = "/api" }: RunGraphProps) => {
     }
     for (const node of all) levelOf(node.id)
     const rows = new Map<number, number>()
+    for (const node of all) {
+      const level = levels.get(node.id) ?? 0
+      rows.set(level, (rows.get(level) ?? 0) + 1)
+    }
+    const offsets = new Map<number, number>()
     return all.map((node) => {
       const level = levels.get(node.id) ?? 0
-      const row = rows.get(level) ?? 0
-      rows.set(level, row + 1)
-      return { ...node, position: { x: row * 320, y: level * 170 } }
+      const row = offsets.get(level) ?? 0
+      offsets.set(level, row + 1)
+      const count = rows.get(level) ?? 1
+      return { ...node, position: { x: (row - (count - 1) / 2) * 320, y: level * 170 } }
     })
   }, [instances, manifest])
   const edges = useMemo<Edge[]>(
