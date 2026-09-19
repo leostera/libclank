@@ -29,10 +29,12 @@ CREATE TABLE IF NOT EXISTS node_instances (
   next_attempt_at INTEGER,
   lease_expires_at INTEGER,
   error_json TEXT,
+  updated_at INTEGER NOT NULL DEFAULT 0,
   UNIQUE(run_id, instance_id)
 );
 CREATE INDEX IF NOT EXISTS node_instances_ready ON node_instances(status, next_attempt_at);
 CREATE INDEX IF NOT EXISTS node_instances_cache ON node_instances(execution_key, status);
+
 CREATE TABLE IF NOT EXISTS node_dependencies (
   run_id TEXT NOT NULL,
   node_instance_id TEXT NOT NULL REFERENCES node_instances(instance_id),

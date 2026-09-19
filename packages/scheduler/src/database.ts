@@ -10,4 +10,7 @@ export interface SchedulerDatabase {
   putNode(instance: NodeInstanceRecord): Promise<void>
   getNode(instanceId: string): Promise<NodeInstanceRecord | undefined>
   ready(now: number): Promise<readonly NodeInstanceRecord[]>
+  claimNode?(instanceId: string, leaseMs: number): Promise<NodeInstanceRecord | undefined>
+  appendEvent?(event: import("./index.js").ExecutionEvent): Promise<void>
+  recoverExpired?(now: number): Promise<void>
 }
