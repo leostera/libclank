@@ -1,4 +1,4 @@
-import { access } from "node:fs/promises"
+import { access, readFile } from "node:fs/promises"
 
 export { openFile, type LocalFile } from "./tasks/fs/open-file.js"
 
@@ -29,20 +29,21 @@ import { Effect } from "effect"
 import type { AgentEndpoint, AgentTaskRequest } from "@libclank/agent"
 import { Id, type SchedulerObserver, type TriggerDefinition } from "@libclank/core"
 
-export interface PiEndpointOptions {
+export interface PiEndpointOptions<Input, Output> {
   /** Turns a LibClank agent task into a Pi prompt. */
-  prompt(request: AgentTaskRequest<unknown>): string
-  /** Verifies the side effect and returns the task output after Pi exits. */
-  output<Input, Output>(input: Input): Promise<Output>
+  prompt(request: AgentTaskRequest<Input>): string
+  /** Verifies/parses the side effect and returns the task output after Pi exits. */
+  output(input: Input): Promise<Output>
   command?: string
 }
 
 /** A local-only AgentEndpoint backed by Pi's non-interactive CLI. */
-export const createPiEndpoint = (options: PiEndpointOptions): AgentEndpoint => ({
-  run: <Input, Output>(request: AgentTaskRequest<Input>) => Effect.tryPromise({
+export const createPiEndpoint = <Input, Output>(options: PiEndpointOptions<Input, Output>): AgentEndpoint => ({
+  run: <RequestInput, RequestOutput>(request: AgentTaskRequest<RequestInput>) => Effect.tryPromise({
     try: async () => {
-      await run(options.command ?? "pi", ["--print", "--no-session", "--approve", options.prompt(request as AgentTaskRequest<unknown>)])
-      return options.output<Input, Output>(request.input)
+      const typedRequest = request as unknown as AgentTaskRequest<Input>
+      await run(options.command ?? "pi", ["--print", "--no-session", "--approve", options.prompt(typedRequest)])
+      return await options.output(typedRequest.input) as RequestOutput
     },
     catch: (error) => error instanceof Error ? error : new Error(String(error)),
   }),
@@ -56,6 +57,16 @@ export const fileOutput = async <Input extends { path: string }>(input: Input): 
     throw new Error(`Pi completed without creating the required artifact: ${input.path}`)
   }
   return input
+}
+
+/** Read a JSON artifact written by a local agent and validate it at the boundary. */
+export const jsonFileOutput = <Input extends { path: string }, Output>(decode: (value: unknown) => Output) => async (input: Input): Promise<Output> => {
+  try {
+    return decode(JSON.parse(await readFile(input.path, "utf8")) as unknown)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(`Could not decode agent JSON artifact ${input.path}: ${message}`)
+  }
 }
 
 function run(command: string, args: readonly string[]): Promise<void> {
