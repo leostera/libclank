@@ -95,6 +95,7 @@
       "name": "@libclank/scheduler",
       "version": "0.0.0",
       "dependencies": {
+        "@libclank/artifacts": "workspace:*",
         "@libclank/core": "workspace:*",
         "effect": "4.0.0-rc.116",
       },
