@@ -1,14 +1,40 @@
-import { Node, type EffectNode, type NodeFunction } from "./node.js"
+import { Node, type EffectNode, type NodeDefinition, type NodeFunction } from "./node.js"
 import type { NodeId } from "./id.js"
 
 export type Task<Input, Output> = Node<Input, Output>
+export type TaskOptions<Input, Output> = {
+  readonly id: NodeId
+  readonly run: NodeFunction<Input, Output>
+  readonly description?: string
+  readonly version?: string
+  /** Only use `by-input` for work with reusable immutable outputs. */
+  readonly cache?: NodeDefinition["cache"]
+}
 
 export const Task = {
-  fn<Input, Output>(options: { id: NodeId; run: NodeFunction<Input, Output> }): Task<Input, Output> {
-    return new Node(options.id, options.run)
+  fn<Input, Output>(options: TaskOptions<Input, Output>): Task<Input, Output> {
+    return new Node(options.id, options.run, [], true, definition(options))
   },
 
-  effect<Input>(options: { id: NodeId; run: NodeFunction<Input, void> }): EffectNode<Input> {
-    return new Node(options.id, options.run)
+  effect<Input>(options: TaskOptions<Input, void>): EffectNode<Input> {
+    return new Node(options.id, options.run, [], true, definition(options))
   },
+}
+
+/** Resolves persisted task IDs back to source-loaded implementations during retry. */
+export interface TaskRegistry {
+  get(id: NodeId): Node<unknown, unknown> | undefined
+  definitions(): readonly NodeDefinition[]
+}
+
+export const createTaskRegistry = (tasks: readonly Node<unknown, unknown>[]): TaskRegistry => {
+  const byId = new Map(tasks.map((task) => [task.id, task]))
+  return {
+    get: (id) => byId.get(id),
+    definitions: () => [...byId.values()].map((task) => task.definition),
+  }
+}
+
+function definition<Input, Output>(options: TaskOptions<Input, Output>): NodeDefinition {
+  return { id: options.id, description: options.description ?? options.id, version: options.version ?? "1", cache: options.cache ?? "never" }
 }

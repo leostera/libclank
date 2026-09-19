@@ -13,6 +13,14 @@ export interface ExecutionContext {
 export type NodeRun<Output> = Effect.Effect<Output, unknown, never>
 export type NodeFunction<Input, Output> = (input: Input, context?: ExecutionContext) => NodeRun<Output>
 
+/** Source-defined metadata persisted by durable schedulers; executable closures are never persisted. */
+export interface NodeDefinition {
+  readonly id: NodeId
+  readonly description: string
+  readonly version: string
+  readonly cache: "never" | "by-input"
+}
+
 export interface TriggerDefinition<Output = unknown> {
   readonly id: TriggerId
   readonly kind: "webhook" | "cron" | "manual"
@@ -30,6 +38,7 @@ export class Node<Input, Output> {
     run: NodeFunction<Input, Output>,
     readonly triggers: readonly TriggerDefinition[] = [],
     readonly observable = true,
+    readonly definition: NodeDefinition = { id, description: Id.name(id), version: "1", cache: "never" },
   ) {
     this.execute = (input, context) => {
       const observer = context?.observer
