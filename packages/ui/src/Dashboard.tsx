@@ -38,6 +38,9 @@ export const Dashboard = ({ apiBase = "/api" }: DashboardProps) => {
     const timer = setInterval(load, 5000)
     return () => clearInterval(timer)
   }, [apiBase])
+  const workflowVersions = new Map<string, number>()
+  for (const workflow of workflows)
+    workflowVersions.set(workflow.workflowId, (workflowVersions.get(workflow.workflowId) ?? 0) + 1)
   return (
     <main>
       <header>
@@ -47,8 +50,11 @@ export const Dashboard = ({ apiBase = "/api" }: DashboardProps) => {
       <section>
         <h2>Registered workflows</h2>
         {workflows.map((workflow) => (
-          <article key={workflow.workflowId}>
+          <article key={`${workflow.workflowId}:${workflow.definitionHash}`}>
             <strong>{workflow.workflowId}</strong>
+            {workflowVersions.get(workflow.workflowId)! > 1 && (
+              <small> version {workflow.definitionHash.slice(0, 16)} (older deployment)</small>
+            )}
             {workflow.triggers.map((triggerDef) => (
               <button key={triggerDef.id} onClick={() => triggerRun(triggerDef.id)}>
                 Trigger {triggerDef.id}

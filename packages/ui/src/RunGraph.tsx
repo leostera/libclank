@@ -12,7 +12,7 @@ const Manifest = Schema.Struct({
   definitionHash: Schema.String,
   triggers: Schema.Array(Trigger),
   tasks: Schema.Array(Task),
-  edges: Schema.Array(Edge),
+  edges: Schema.optional(Schema.Array(Edge)),
 })
 const Instance = Schema.Struct({ nodeId: Schema.String, status: Schema.String, attempt: Schema.Number })
 type Run = Schema.Schema.Type<typeof Run>

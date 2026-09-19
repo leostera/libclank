@@ -5,9 +5,10 @@ import { RunGraph } from "./RunGraph.js"
 const root = document.getElementById("root")
 if (!root) throw new Error("Missing #root")
 
+const appRoot = createRoot(root)
 const render = () => {
   const match = window.location.hash.match(/^#\/runs\/([^/]+)$/)
-  createRoot(root).render(match ? <RunGraph runId={decodeURIComponent(match[1]!)} /> : <Dashboard />)
+  appRoot.render(match ? <RunGraph runId={decodeURIComponent(match[1]!)} /> : <Dashboard />)
 }
 window.addEventListener("hashchange", render)
 render()
