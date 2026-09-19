@@ -9,6 +9,7 @@ import {
   type WorkflowRun,
 } from "@libclank/core"
 import { createWorkflowManifest } from "./manifest.js"
+import type { SourceMetadata } from "./deployment.js"
 import type { SchedulerDatabase } from "./database.js"
 import type { NodeInstanceRecord } from "./run-state.js"
 
@@ -17,7 +18,16 @@ export const createDurableScheduler = async <Input = void, Output = unknown>(opt
   readonly workflows: readonly Node<Input, Output>[]
   readonly database: SchedulerDatabase
   readonly observer: SchedulerObserver
+  readonly source?: SourceMetadata
+  readonly runtime?: string
 }): Promise<Scheduler<Input, Output>> => {
+  const deploymentId = crypto.randomUUID()
+  await options.database.registerDeployment?.({
+    id: deploymentId,
+    runtime: options.runtime ?? "local",
+    source: options.source ?? { deployedAt: Date.now() },
+    startedAt: Date.now(),
+  })
   const manifests = new Map<string, Awaited<ReturnType<typeof createWorkflowManifest>>>()
   for (const workflow of options.workflows) {
     const manifest = await createWorkflowManifest({
@@ -27,6 +37,7 @@ export const createDurableScheduler = async <Input = void, Output = unknown>(opt
     })
     manifests.set(workflow.id, manifest)
     await options.database.register(manifest)
+    await options.database.activateWorkflow?.(manifest.workflowId, manifest.definitionHash, deploymentId)
   }
   const triggers = uniqueTriggers(options.workflows.flatMap((workflow) => workflow.triggers))
   return {

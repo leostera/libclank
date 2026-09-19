@@ -32,6 +32,22 @@ export const createLocalSchedulerDatabase = (path = resolve(".clank/scheduler.sq
         Date.now(),
       )
     },
+    async registerDeployment(deployment) {
+      db.prepare(
+        "INSERT OR REPLACE INTO scheduler_deployments (deployment_id, runtime, source_json, started_at, activated_at) VALUES (?, ?, ?, ?, ?)",
+      ).run(
+        deployment.id,
+        deployment.runtime,
+        JSON.stringify(deployment.source),
+        deployment.startedAt,
+        deployment.activatedAt ?? null,
+      )
+    },
+    async activateWorkflow(workflowId, definitionHash, deploymentId) {
+      db.prepare(
+        "INSERT OR REPLACE INTO active_workflow_definitions (workflow_id, definition_hash, deployment_id, activated_at) VALUES (?, ?, ?, ?)",
+      ).run(workflowId, definitionHash, deploymentId, Date.now())
+    },
     async definition(hash) {
       const row = db.prepare("SELECT manifest_json FROM workflow_definitions WHERE definition_hash=?").get(hash) as
         { manifest_json: string } | undefined

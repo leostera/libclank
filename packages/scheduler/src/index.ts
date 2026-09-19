@@ -1,5 +1,6 @@
 export * from "./artifacts.js"
 export * from "./database.js"
+export * from "./deployment.js"
 export * from "./durable.js"
 export * from "./execution-key.js"
 export * from "./manifest.js"
