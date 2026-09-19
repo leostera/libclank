@@ -33,6 +33,14 @@ export class DurableTaskScheduler {
   }
 
   private async execute(node: NodeInstanceRecord): Promise<void> {
+    if (node.executionKey) {
+      const cached = await this.options.database.cached?.(node.executionKey)
+      if (cached) {
+        const { leaseExpiresAt: _lease, ...reused } = node
+        await this.options.database.putNode({ ...reused, status: "completed", ...(cached.output === undefined ? {} : { output: cached.output }), ...(cached.outputArtifacts === undefined ? {} : { outputArtifacts: cached.outputArtifacts }) })
+        return
+      }
+    }
     const task = this.options.tasks.get(node.nodeId)
     if (!task) {
       await this.options.database.putNode({ ...node, status: "failed", error: serializeExecutionError(new Error(`Task ${node.nodeId} is not registered in this deployment`)) })

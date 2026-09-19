@@ -31,6 +31,10 @@ export const createLocalSchedulerDatabase = (path = resolve(".clank/scheduler.sq
       const row = db.prepare("SELECT * FROM node_instances WHERE instance_id=?").get(id) as NodeRow | undefined
       return row ? hydrateNode(row) : undefined
     },
+    async cached(executionKey) {
+      const row = db.prepare("SELECT * FROM node_instances WHERE execution_key=? AND status='completed' LIMIT 1").get(executionKey) as NodeRow | undefined
+      return row ? hydrateNode(row) : undefined
+    },
     async ready(now) {
       const rows = db.prepare("SELECT * FROM node_instances WHERE status IN ('ready','retry_wait') AND (next_attempt_at IS NULL OR next_attempt_at <= ?) ORDER BY rowid").all(now) as NodeRow[]
       return rows.map(hydrateNode)
