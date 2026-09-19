@@ -1,5 +1,6 @@
 export * from "./execution-key.js"
 export * from "./manifest.js"
+export * from "./run-state.js"
 
 import { Effect } from "effect"
 import type { EventId, NodeId, RunId, TriggerId, WorkflowRun } from "@libclank/core"
