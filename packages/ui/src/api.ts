@@ -1,3 +1,4 @@
+import { Schema } from "effect"
 import { Hono } from "hono"
 import { Id } from "@libclank/core"
 import type { SchedulerOperations } from "@libclank/scheduler"
@@ -16,6 +17,25 @@ export const createDashboardApi = (operations: SchedulerOperations): Hono => {
   app.get("/runs/:runId/events", async (context) =>
     context.json(await operations.getEvents(Id.runFrom(context.req.param("runId")))),
   )
+  app.post("/runs", async (context) => {
+    if (!operations.createRun) return context.json({ error: "Run creation is not configured" }, 501)
+    try {
+      const body = await Schema.decodeUnknownPromise(
+        Schema.Struct({
+          workflowDefinitionHash: Schema.String,
+          triggerId: Schema.String,
+          input: Schema.Unknown,
+          idempotencyKey: Schema.optional(Schema.String),
+        }),
+      )(await context.req.json())
+      return context.json(await operations.createRun(body), 202)
+    } catch (error) {
+      return context.json(
+        { error: "Invalid run request", details: error instanceof Error ? error.message : String(error) },
+        400,
+      )
+    }
+  })
   app.post("/triggers/:triggerId", async (context) => {
     if (!operations.trigger) return context.json({ error: "Triggering is not configured" }, 501)
     return context.json(await operations.trigger(context.req.param("triggerId"), await context.req.json()))

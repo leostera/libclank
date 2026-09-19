@@ -101,6 +101,19 @@ const app = createTriggerApp(scheduler)
 const operations = {
   ...createLocalSchedulerOperations(database),
   trigger: (triggerId: string, input: unknown) => scheduler.runTrigger(Id.trigger(triggerId), input),
+  createRun: async ({
+    workflowDefinitionHash,
+    triggerId,
+    input,
+  }: {
+    workflowDefinitionHash: string
+    triggerId: string
+    input: unknown
+  }) => {
+    if (!(await database.definition(workflowDefinitionHash)))
+      throw new Error(`Unknown workflow definition: ${workflowDefinitionHash}`)
+    return scheduler.runTrigger(Id.trigger(triggerId), input)
+  },
 }
 app.route("/api", createDashboardApi(operations))
 const dashboardAssets = createDashboardAssetHandler()
