@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { Effect, Schema } from "effect"
 import { Id, serializeExecutionError, type NodeId, type RunId, type SchedulerObserver } from "@libclank/core"
 import type { SchedulerDatabase } from "./database.js"
 import type { NodeInstanceRecord } from "./run-state.js"
@@ -69,16 +69,18 @@ export class DurableTaskScheduler {
       return
     }
     try {
+      const input = task.inputSchema ? await Schema.decodeUnknownPromise(task.inputSchema)(node.input) : node.input
       const output = await Effect.runPromise(
-        task.execute(node.input, {
+        task.execute(input, {
           runId: node.runId,
           nodeId: node.nodeId,
           triggerValues: this.options.triggerValues ?? new Map(),
           ...(this.options.observer === undefined ? {} : { observer: this.options.observer }),
         }) as Effect.Effect<unknown, unknown, never>,
       )
+      const validatedOutput = task.outputSchema ? await Schema.decodeUnknownPromise(task.outputSchema)(output) : output
       const { leaseExpiresAt: _lease, error: _error, nextAttemptAt: _next, ...completed } = node
-      await this.options.database.putNode({ ...completed, status: "completed", output })
+      await this.options.database.putNode({ ...completed, status: "completed", output: validatedOutput })
       await this.options.database.appendEvent?.({
         eventId: Id.event(),
         type: "node.completed",

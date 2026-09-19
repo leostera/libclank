@@ -1,4 +1,4 @@
-import { Node, type EffectNode, type NodeDefinition, type NodeFunction } from "./node.js"
+import { Node, type EffectNode, type NodeDefinition, type NodeFunction, type RuntimeSchema } from "./node.js"
 import type { NodeId } from "./id.js"
 
 export type Task<Input, Output> = Node<Input, Output>
@@ -10,15 +10,17 @@ export type TaskOptions<Input, Output> = {
   /** Only use `by-input` for work with reusable immutable outputs. */
   readonly cache?: NodeDefinition["cache"]
   readonly retry?: NodeDefinition["retry"]
+  readonly input?: RuntimeSchema<Input>
+  readonly output?: RuntimeSchema<Output>
 }
 
 export const Task = {
   fn<Input, Output>(options: TaskOptions<Input, Output>): Task<Input, Output> {
-    return new Node(options.id, options.run, [], true, definition(options))
+    return new Node(options.id, options.run, [], true, definition(options), [], [], options.input, options.output)
   },
 
   effect<Input>(options: TaskOptions<Input, void>): EffectNode<Input> {
-    return new Node(options.id, options.run, [], true, definition(options))
+    return new Node(options.id, options.run, [], true, definition(options), [], [], options.input, options.output)
   },
 }
 

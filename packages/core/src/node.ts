@@ -1,4 +1,4 @@
-import { Cause, Effect } from "effect"
+import { Cause, Effect, type Schema } from "effect"
 import { findNodeExecutionError, NodeExecutionError } from "./errors.js"
 import { Id, type NodeId, type TriggerId } from "./id.js"
 import { notify, type SchedulerObserver } from "./observer.js"
@@ -10,6 +10,7 @@ export interface ExecutionContext {
   readonly observer?: SchedulerObserver
 }
 
+export type RuntimeSchema<T> = Schema.Schema<T> & Schema.ConstraintDecoder<unknown, never>
 export type NodeRun<Output> = Effect.Effect<Output, unknown, never>
 export type NodeFunction<Input, Output> = (input: Input, context?: ExecutionContext) => NodeRun<Output>
 
@@ -43,6 +44,8 @@ export class Node<Input, Output> {
   readonly execute: (input: Input, context?: ExecutionContext) => NodeRun<Output>
   readonly definitions: readonly NodeDefinition[]
   readonly implementations: readonly StepImplementation[]
+  readonly inputSchema: RuntimeSchema<Input> | undefined
+  readonly outputSchema: RuntimeSchema<Output> | undefined
 
   constructor(
     readonly id: NodeId,
@@ -60,7 +63,11 @@ export class Node<Input, Output> {
     },
     definitions: readonly NodeDefinition[] = [],
     implementations: readonly StepImplementation[] = [],
+    inputSchema?: RuntimeSchema<Input>,
+    outputSchema?: RuntimeSchema<Output>,
   ) {
+    this.inputSchema = inputSchema
+    this.outputSchema = outputSchema
     this.definitions = [definition, ...definitions]
     this.implementations =
       implementations.length > 0
