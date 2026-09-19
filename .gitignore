@@ -2,5 +2,5 @@ node_modules/
 dist/
 summaries/
 link-digests/
-parallel-analyses/
+parallel-analysis-artifacts/
 pi-session-*.html
