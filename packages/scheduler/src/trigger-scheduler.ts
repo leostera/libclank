@@ -22,7 +22,7 @@ export const createDurableScheduler = async <Input = void, Output = unknown>(opt
   for (const workflow of options.workflows) {
     const manifest = await createWorkflowManifest({
       workflowId: Id.workflow(Id.name(workflow.id)),
-      tasks: [workflow.definition],
+      tasks: workflow.definitions,
       triggers: workflow.triggers,
     })
     manifests.set(workflow.id, manifest)

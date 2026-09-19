@@ -109,6 +109,12 @@ export class Node<Input, Output> {
         ),
       this.triggers,
       false,
+      {
+        ...this.definition,
+        id: Id.childNode(this.id, "then"),
+        dependencies: [this.id, ...(next instanceof Node ? [next.id] : [])],
+      },
+      [...this.definitions, ...(next instanceof Node ? next.definitions : [])],
     )
   }
 
@@ -119,6 +125,8 @@ export class Node<Input, Output> {
         Effect.flatMap(this.execute(input, context), (output) => Effect.as(effect.execute(output, context), output)),
       this.triggers,
       false,
+      { ...this.definition, id: Id.childNode(this.id, "tap"), dependencies: [this.id, effect.id] },
+      [...this.definitions, ...effect.definitions],
     )
   }
 
@@ -128,6 +136,8 @@ export class Node<Input, Output> {
       (input, context) => Effect.map(this.execute(input, context), transform),
       this.triggers,
       false,
+      { ...this.definition, id: Id.childNode(this.id, "map"), dependencies: [this.id] },
+      this.definitions,
     )
   }
 
@@ -151,6 +161,12 @@ export class Node<Input, Output> {
         ),
       this.triggers,
       false,
+      {
+        ...this.definition,
+        id: Id.childNode(this.id, "map-each"),
+        dependencies: [this.id, ...(next instanceof Node ? [next.id] : [])],
+      },
+      [...this.definitions, ...(next instanceof Node ? next.definitions : [])],
     )
   }
 
@@ -174,6 +190,8 @@ export class Node<Input, Output> {
         ),
       this.triggers,
       false,
+      { ...this.definition, id: Id.childNode(this.id, "forEach"), dependencies: [this.id] },
+      this.definitions,
     )
   }
 
@@ -195,6 +213,12 @@ export class Node<Input, Output> {
         ),
       this.triggers,
       false,
+      {
+        ...this.definition,
+        id: Id.childNode(this.id, "fanout"),
+        dependencies: [this.id, ...Object.values(branches).map((branch) => branch.id)],
+      },
+      [...this.definitions, ...Object.values(branches).flatMap((branch) => branch.definitions)],
     )
   }
 }
