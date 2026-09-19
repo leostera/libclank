@@ -1,3 +1,4 @@
+export * from "./artifacts.js"
 export * from "./database.js"
 export * from "./durable.js"
 export * from "./execution-key.js"
