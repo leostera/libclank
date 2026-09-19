@@ -18,4 +18,8 @@ export interface SchedulerDatabase {
   claimNode?(instanceId: string, leaseMs: number): Promise<NodeInstanceRecord | undefined>
   appendEvent?(event: import("./index.js").ExecutionEvent): Promise<void>
   recoverExpired?(now: number): Promise<void>
+  listWorkflows?(): Promise<readonly import("./manifest.js").WorkflowManifest[]>
+  listRuns?(): Promise<readonly WorkflowRunRecord[]>
+  getNodes?(runId: WorkflowRunRecord["id"]): Promise<readonly NodeInstanceRecord[]>
+  getEvents?(runId: WorkflowRunRecord["id"]): Promise<readonly import("./index.js").ExecutionEvent[]>
 }

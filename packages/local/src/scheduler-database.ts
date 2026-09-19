@@ -113,6 +113,28 @@ export const createLocalSchedulerDatabase = (path = resolve(".clank/scheduler.sq
         "UPDATE node_instances SET status='retry_wait', next_attempt_at=?, lease_expires_at=NULL WHERE status='running' AND lease_expires_at IS NOT NULL AND lease_expires_at <= ?",
       ).run(now, now)
     },
+    async listWorkflows() {
+      return (
+        db.prepare("SELECT manifest_json FROM workflow_definitions ORDER BY registered_at").all() as {
+          manifest_json: string
+        }[]
+      ).map((row) => JSON.parse(row.manifest_json))
+    },
+    async listRuns() {
+      return (db.prepare("SELECT * FROM workflow_runs ORDER BY created_at DESC").all() as RunRow[]).map(hydrateRun)
+    },
+    async getNodes(runId) {
+      return (db.prepare("SELECT * FROM node_instances WHERE run_id=? ORDER BY rowid").all(runId) as NodeRow[]).map(
+        hydrateNode,
+      )
+    },
+    async getEvents(runId) {
+      return (
+        db.prepare("SELECT payload_json FROM scheduler_events WHERE run_id=? ORDER BY created_at").all(runId) as {
+          payload_json: string
+        }[]
+      ).map((row) => JSON.parse(row.payload_json))
+    },
   }
 }
 

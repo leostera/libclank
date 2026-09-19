@@ -2,6 +2,7 @@ import { access, readFile } from "node:fs/promises"
 
 export { createLocalArtifacts, type LocalArtifactsOptions } from "./artifacts.js"
 export { createLocalSchedulerDatabase } from "./scheduler-database.js"
+export { createLocalSchedulerOperations } from "./operations.js"
 export { openFile, type LocalFile } from "./tasks/fs/open-file.js"
 
 /** Human-readable local execution logging for development servers. */
@@ -46,7 +47,7 @@ function render(value: unknown): string {
   }
 }
 import { spawn } from "node:child_process"
-import { Effect } from "effect"
+import { Effect, Schema } from "effect"
 import type { AgentEndpoint, AgentTaskRequest } from "@libclank/agent"
 import { Id, type SchedulerObserver, type TriggerDefinition } from "@libclank/core"
 
@@ -86,7 +87,23 @@ export const jsonFileOutput =
   <Input extends { path: string }, Output>(decode: (value: unknown) => Output) =>
   async (input: Input): Promise<Output> => {
     try {
-      return decode(JSON.parse(await readFile(input.path, "utf8")) as unknown)
+      const value: unknown = JSON.parse(await readFile(input.path, "utf8"))
+      return decode(value)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      throw new Error(`Could not decode agent JSON artifact ${input.path}: ${message}`)
+    }
+  }
+
+/** Schema-backed JSON artifact output for untrusted agent data. */
+export const jsonSchemaFileOutput =
+  <Input extends { path: string }, S extends Schema.Schema<unknown> & Schema.ConstraintDecoder<unknown, never>>(
+    schema: S,
+  ) =>
+  async (input: Input): Promise<S["Type"]> => {
+    try {
+      const value: unknown = JSON.parse(await readFile(input.path, "utf8"))
+      return await Schema.decodeUnknownPromise(schema)(value)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       throw new Error(`Could not decode agent JSON artifact ${input.path}: ${message}`)

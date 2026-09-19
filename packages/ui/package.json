@@ -1,5 +1,5 @@
 {
-  "name": "@libclank/artifacts",
+  "name": "@libclank/ui",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -10,6 +10,6 @@
   },
   "dependencies": {
     "@libclank/core": "workspace:*",
-    "effect": "4.0.0-rc.116"
+    "@libclank/scheduler": "workspace:*"
   }
 }
