@@ -34,6 +34,7 @@ export interface TriggerDefinition<Output = unknown> {
 export class Node<Input, Output> {
   /** A function property intentionally makes Input contravariant and Output covariant. */
   readonly execute: (input: Input, context?: ExecutionContext) => NodeRun<Output>
+  readonly definitions: readonly NodeDefinition[]
 
   constructor(
     readonly id: NodeId,
@@ -48,8 +49,9 @@ export class Node<Input, Output> {
       dependencies: [],
       retry: { maxAttempts: 1, backoffMs: 1000 },
     },
-    readonly definitions: readonly NodeDefinition[] = [definition],
+    definitions: readonly NodeDefinition[] = [],
   ) {
+    this.definitions = [definition, ...definitions]
     this.execute = (input, context) => {
       const observer = context?.observer
       const execution = Effect.catchCause(run(input, context), (cause) => {
