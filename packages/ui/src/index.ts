@@ -1,4 +1,5 @@
 export { createDashboardApi } from "./api.js"
+export { createDashboardAssetHandler } from "./server.js"
 export { Dashboard, type DashboardProps } from "./Dashboard.js"
 export { RunGraph, type RunGraphProps } from "./RunGraph.js"
 

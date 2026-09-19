@@ -13,7 +13,7 @@ import {
   openFile,
 } from "@libclank/local"
 import { createDurableScheduler } from "@libclank/scheduler"
-import { createDashboardApi } from "@libclank/ui"
+import { createDashboardApi, createDashboardAssetHandler } from "@libclank/ui"
 
 type SourceRequest = { readonly url: string; readonly path: string }
 type MarkdownArtifact = { readonly url: string; readonly path: string }
@@ -102,11 +102,12 @@ const operations = {
   trigger: (triggerId: string, input: unknown) => scheduler.runTrigger(Id.trigger(triggerId), input),
 }
 app.route("/api", createDashboardApi(operations))
-app.get("/", (context) => context.json({ dashboard: "http://localhost:5173", api: "http://localhost:8789" }))
+const dashboardAssets = createDashboardAssetHandler()
+app.get("/*", (context) => dashboardAssets(context.req.raw))
 
 Bun.serve({ port: 8789, fetch: app.fetch })
 console.log("Local LibClank parallel-analysis server listening on http://localhost:8789")
-console.log("Dashboard available at http://localhost:5173/ (run `cd packages/ui && bun run dev` in another terminal)")
+console.log("Dashboard and API available at http://localhost:8789/")
 logListeningTriggers(scheduler.triggers)
 
 function artifactPath(kind: string): string {
