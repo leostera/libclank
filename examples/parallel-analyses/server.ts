@@ -106,7 +106,7 @@ app.get("/", (context) => context.json({ dashboard: "http://localhost:5173", api
 
 Bun.serve({ port: 8789, fetch: app.fetch })
 console.log("Local LibClank parallel-analysis server listening on http://localhost:8789")
-console.log("Dashboard available at http://localhost:8789/")
+console.log("Dashboard available at http://localhost:5173/ (run `cd packages/ui && bun run dev` in another terminal)")
 logListeningTriggers(scheduler.triggers)
 
 function artifactPath(kind: string): string {
