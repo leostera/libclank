@@ -61,7 +61,7 @@ function compositionEdges(tasks: readonly NodeDefinition[]): WorkflowManifestEdg
         ? [{ from: output(task.dependencies[0]), to: task.stepId, kind: "dependency" as const }]
         : task.dependencies
             .slice(1)
-            .map((branch) => ({ from: output(task.dependencies[0]!), to: output(branch), kind: "dependency" as const }))
+            .map((branch) => ({ from: output(task.dependencies[0]!), to: input(branch), kind: "dependency" as const }))
     return []
   })
 }
