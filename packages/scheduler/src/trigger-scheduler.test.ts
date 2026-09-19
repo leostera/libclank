@@ -36,6 +36,8 @@ describe("createDurableScheduler", () => {
       "workflow.scheduled",
       "node.started",
       "node.completed",
+      "node.started",
+      "node.completed",
       "workflow.completed",
     ])
   })
@@ -67,8 +69,21 @@ class RecordingDatabase implements SchedulerDatabase {
   async getNode() {
     return undefined
   }
+  async getNodes() {
+    return this.nodes
+  }
   async ready() {
-    return []
+    return this.nodes.filter((node) => node.status === "ready" || node.status === "retry_wait")
+  }
+  async claimNode(id: string) {
+    const node = this.nodes.find((item) => item.id === id)
+    if (!node || (node.status !== "ready" && node.status !== "retry_wait")) return undefined
+    const claimed = { ...node, status: "running" as const, attempt: node.attempt + 1 }
+    await this.putNode(claimed)
+    return claimed
+  }
+  async promoteReady() {
+    for (const node of this.nodes) if (node.status === "pending") await this.putNode({ ...node, status: "ready" })
   }
   async appendEvent(event: ExecutionEvent) {
     this.events.push(event)

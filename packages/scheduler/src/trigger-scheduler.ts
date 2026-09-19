@@ -1,6 +1,6 @@
-import { Effect } from "effect"
 import {
   Id,
+  createStepRegistry,
   serializeExecutionError,
   type Node,
   type Scheduler,
@@ -8,12 +8,14 @@ import {
   type TriggerDefinition,
   type WorkflowRun,
 } from "@libclank/core"
-import { createWorkflowManifest } from "./manifest.js"
 import type { SourceMetadata } from "./deployment.js"
+import { DurableTaskScheduler } from "./durable.js"
+import { createWorkflowManifest } from "./manifest.js"
+import { materializeWorkflowRun } from "./materialize.js"
 import type { SchedulerDatabase } from "./database.js"
-import type { NodeInstanceRecord } from "./run-state.js"
+import type { WorkflowRunRecord } from "./run-state.js"
 
-/** Scheduler facade that records trigger/run/node state before executing source-loaded task code. */
+/** Scheduler facade that executes persisted workflow step instances. */
 export const createDurableScheduler = async <Input = void, Output = unknown>(options: {
   readonly workflows: readonly Node<Input, Output>[]
   readonly database: SchedulerDatabase
@@ -52,14 +54,15 @@ export const createDurableScheduler = async <Input = void, Output = unknown>(opt
           const runId = Id.run()
           const now = Date.now()
           const manifest = manifests.get(workflow.id)!
-          await options.database.createRun({
+          const run: WorkflowRunRecord = {
             id: runId,
             workflowDefinitionHash: manifest.definitionHash,
             status: "running",
             input: value,
             createdAt: now,
             updatedAt: now,
-          })
+          }
+          await options.database.createRun(run)
           await options.database.appendEvent?.({
             eventId: Id.event(),
             type: "trigger.received",
@@ -73,42 +76,25 @@ export const createDurableScheduler = async <Input = void, Output = unknown>(opt
             runId,
             workflowId: workflow.id,
           })
-          const node: NodeInstanceRecord = {
-            id: `${runId}:${workflow.id}`,
-            runId,
-            nodeId: workflow.id,
-            status: "running",
-            input: value,
-            inputArtifacts: [],
-            attempt: 1,
-          }
-          await options.database.putNode(node)
-          await options.database.appendEvent?.({
-            eventId: Id.event(),
-            type: "node.started",
-            runId,
-            nodeId: workflow.id,
-            attempt: 1,
-          })
           try {
-            const output = await Effect.runPromise(
-              workflow.execute(undefined as Input, {
-                triggerValues: new Map([[triggerId, value]]),
-                runId,
-                nodeId: workflow.id,
-                observer: options.observer,
-              }) as Effect.Effect<Output, unknown, never>,
-            )
-            await options.database.putNode({ ...node, status: "completed", output })
-            await options.database.updateRun?.(runId, { status: "completed", updatedAt: Date.now() })
-            await options.database.appendEvent?.({
-              eventId: Id.event(),
-              type: "node.completed",
-              runId,
-              nodeId: workflow.id,
-              output,
-              durationMs: Date.now() - now,
+            await materializeWorkflowRun({ database: options.database, run, manifest, input: value })
+            const executor = new DurableTaskScheduler({
+              database: options.database,
+              tasks: createStepRegistry([workflow as unknown as Node<unknown, unknown>]),
+              observer: options.observer,
+              triggerValues: new Map([[triggerId, value]]),
             })
+            let work = 0
+            do {
+              work = await executor.tick()
+            } while (work > 0)
+            const nodes = (await options.database.getNodes?.(runId)) ?? []
+            const failed = nodes.find((node) => node.status === "failed")
+            const incomplete = nodes.some((node) => node.status !== "completed")
+            if (failed) throw failed.error ?? new Error(`Step ${failed.nodeId} failed`)
+            if (incomplete) throw new Error(`Run ${runId} has incomplete step instances`)
+            const output = nodes.at(-1)?.output as Output
+            await options.database.updateRun?.(runId, { status: "completed", updatedAt: Date.now() })
             await options.database.appendEvent?.({
               eventId: Id.event(),
               type: "workflow.completed",
@@ -118,16 +104,7 @@ export const createDurableScheduler = async <Input = void, Output = unknown>(opt
             return { id: runId, workflowId: workflow.id, triggerId, status: "completed", output } as WorkflowRun
           } catch (error) {
             const serialized = serializeExecutionError(error)
-            await options.database.putNode({ ...node, status: "failed", error: serialized })
             await options.database.updateRun?.(runId, { status: "failed", updatedAt: Date.now() })
-            await options.database.appendEvent?.({
-              eventId: Id.event(),
-              type: "node.failed",
-              runId,
-              nodeId: workflow.id,
-              attempt: 1,
-              error: serialized,
-            })
             await options.database.appendEvent?.({
               eventId: Id.event(),
               type: "workflow.completed",

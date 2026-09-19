@@ -108,6 +108,11 @@ export const createLocalSchedulerDatabase = (path = resolve(".clank/scheduler.sq
         .get(executionKey) as NodeRow | undefined
       return row ? hydrateNode(row) : undefined
     },
+    async promoteReady(runId) {
+      db.prepare(
+        "UPDATE node_instances SET status='ready', input_json=COALESCE((SELECT output_json FROM node_instances dependency JOIN node_dependencies link ON link.depends_on_instance_id=dependency.instance_id WHERE link.node_instance_id=node_instances.instance_id AND link.run_id=? LIMIT 1), input_json), updated_at=? WHERE run_id=? AND status='pending' AND NOT EXISTS (SELECT 1 FROM node_dependencies link LEFT JOIN node_instances dependency ON dependency.instance_id=link.depends_on_instance_id WHERE link.node_instance_id=node_instances.instance_id AND link.run_id=? AND dependency.status != 'completed')",
+      ).run(runId, Date.now(), runId, runId)
+    },
     async ready(now) {
       const rows = db
         .prepare(

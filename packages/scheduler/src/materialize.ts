@@ -9,11 +9,14 @@ export const materializeWorkflowRun = async (options: {
   readonly manifest: WorkflowManifest
   readonly input: unknown
 }): Promise<readonly NodeInstanceRecord[]> => {
+  const dependencyTargets = new Set(
+    options.manifest.edges.filter((edge) => edge.kind === "dependency").map((edge) => edge.to),
+  )
   const instances = options.manifest.tasks.map((task) => ({
     id: `${options.run.id}:${task.stepId}`,
     runId: options.run.id,
     nodeId: task.stepId,
-    status: "pending" as const,
+    status: dependencyTargets.has(task.stepId) ? ("pending" as const) : ("ready" as const),
     input: options.input,
     inputArtifacts: [],
     attempt: 0,

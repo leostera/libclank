@@ -18,6 +18,7 @@ export interface SchedulerDatabase {
   putDependency?(runId: WorkflowRunRecord["id"], nodeInstanceId: string, dependsOnInstanceId: string): Promise<void>
   getNode(instanceId: string): Promise<NodeInstanceRecord | undefined>
   ready(now: number): Promise<readonly NodeInstanceRecord[]>
+  promoteReady?(runId: WorkflowRunRecord["id"]): Promise<void>
   cached?(executionKey: string): Promise<NodeInstanceRecord | undefined>
   claimNode?(instanceId: string, leaseMs: number): Promise<NodeInstanceRecord | undefined>
   appendEvent?(event: import("./index.js").ExecutionEvent): Promise<void>

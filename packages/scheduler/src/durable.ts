@@ -1,5 +1,5 @@
 import { Effect } from "effect"
-import { serializeExecutionError, type NodeId, type RunId, type SchedulerObserver } from "@libclank/core"
+import { Id, serializeExecutionError, type NodeId, type RunId, type SchedulerObserver } from "@libclank/core"
 import type { SchedulerDatabase } from "./database.js"
 import type { NodeInstanceRecord } from "./run-state.js"
 import type { TaskRegistry } from "@libclank/core"
@@ -18,6 +18,7 @@ export class DurableTaskScheduler {
       readonly observer?: SchedulerObserver
       readonly retry?: RetryPolicy
       readonly leaseMs?: number
+      readonly triggerValues?: ReadonlyMap<import("@libclank/core").TriggerId, unknown>
     },
   ) {}
 
@@ -31,6 +32,13 @@ export class DurableTaskScheduler {
     for (const candidate of nodes) {
       const node = await this.options.database.claimNode?.(candidate.id, this.options.leaseMs ?? 60_000)
       if (!node) continue
+      await this.options.database.appendEvent?.({
+        eventId: Id.event(),
+        type: "node.started",
+        runId: node.runId,
+        nodeId: node.nodeId,
+        attempt: node.attempt,
+      })
       await this.execute(node)
       completed++
     }
@@ -65,12 +73,21 @@ export class DurableTaskScheduler {
         task.execute(node.input, {
           runId: node.runId,
           nodeId: node.nodeId,
-          triggerValues: new Map(),
+          triggerValues: this.options.triggerValues ?? new Map(),
           ...(this.options.observer === undefined ? {} : { observer: this.options.observer }),
         }) as Effect.Effect<unknown, unknown, never>,
       )
       const { leaseExpiresAt: _lease, error: _error, nextAttemptAt: _next, ...completed } = node
       await this.options.database.putNode({ ...completed, status: "completed", output })
+      await this.options.database.appendEvent?.({
+        eventId: Id.event(),
+        type: "node.completed",
+        runId: node.runId,
+        nodeId: node.nodeId,
+        output,
+        durationMs: 0,
+      })
+      await this.options.database.promoteReady?.(node.runId)
     } catch (error) {
       const retry = this.options.retry ?? { maxAttempts: 3, backoffMs: (attempt: number) => 1000 * 2 ** (attempt - 1) }
       const next = node.attempt < retry.maxAttempts
@@ -79,6 +96,14 @@ export class DurableTaskScheduler {
         ...failed,
         status: next ? "retry_wait" : "failed",
         ...(next ? { nextAttemptAt: Date.now() + retry.backoffMs(node.attempt) } : {}),
+        error: serializeExecutionError(error),
+      })
+      await this.options.database.appendEvent?.({
+        eventId: Id.event(),
+        type: "node.failed",
+        runId: node.runId,
+        nodeId: node.nodeId,
+        attempt: node.attempt,
         error: serializeExecutionError(error),
       })
     }
