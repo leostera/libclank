@@ -40,11 +40,11 @@ function compositionEdges(tasks: readonly NodeDefinition[]): WorkflowManifestEdg
   const byId = new Map(tasks.map((task) => [task.id, task]))
   const output = (id: string): string => {
     const task = byId.get(Id.node(id))
-    return task && /(then|tap)$/.test(id) && task.dependencies[1] ? output(task.dependencies[1]) : id
+    return task && /(then|tap)$/.test(id) && task.dependencies[1] ? output(task.dependencies[1]) : (task?.stepId ?? id)
   }
   const input = (id: string): string => {
     const task = byId.get(Id.node(id))
-    return task && /(then|tap)$/.test(id) && task.dependencies[0] ? input(task.dependencies[0]) : id
+    return task && /(then|tap)$/.test(id) && task.dependencies[0] ? input(task.dependencies[0]) : (task?.stepId ?? id)
   }
   return tasks.flatMap((task) => {
     if ((task.id.endsWith("/then") || task.id.endsWith("/tap")) && task.dependencies[0] && task.dependencies[1])
