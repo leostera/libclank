@@ -5,9 +5,18 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
-    "./tasks/fs/open-file": { "types": "./dist/tasks/fs/open-file.d.ts", "default": "./dist/tasks/fs/open-file.js" },
-    "./artifacts": { "types": "./dist/artifacts.d.ts", "default": "./dist/artifacts.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./tasks/fs/open-file": {
+      "types": "./dist/tasks/fs/open-file.d.ts",
+      "default": "./dist/tasks/fs/open-file.js"
+    },
+    "./artifacts": {
+      "types": "./dist/artifacts.d.ts",
+      "default": "./dist/artifacts.js"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -15,7 +24,8 @@
   },
   "dependencies": {
     "@libclank/agent": "workspace:*",
-    "@libclank/artifacts": "workspace:*", 
+    "@libclank/artifacts": "workspace:*",
+    "better-sqlite3": "^13.0.3",
     "effect": "4.0.0-rc.116"
   }
 }
