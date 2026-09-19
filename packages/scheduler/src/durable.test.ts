@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { Effect, Schema } from "effect"
 import { describe, expect, it } from "vitest"
 import { Id, Task, createTaskRegistry } from "@libclank/core"
 import type { NodeInstanceRecord } from "./run-state.js"
@@ -6,6 +6,28 @@ import type { SchedulerDatabase } from "./database.js"
 import { DurableTaskScheduler } from "./durable.js"
 
 describe("DurableTaskScheduler", () => {
+  it("decodes inputs and validates outputs at the execution boundary", async () => {
+    const nodeId = Id.node("typed")
+    const task = Task.fn({
+      id: nodeId,
+      input: Schema.Struct({ value: Schema.Number }),
+      output: Schema.Number,
+      run: (input: { value: number }) => Effect.succeed(input.value + 1),
+    })
+    const node: NodeInstanceRecord = {
+      id: "typed-1",
+      runId: Id.run(),
+      nodeId,
+      status: "ready",
+      input: { value: 2 },
+      inputArtifacts: [],
+      attempt: 0,
+    }
+    const database = new FakeDatabase(node)
+    await new DurableTaskScheduler({ database, tasks: createTaskRegistry([task] as unknown as never[]) }).tick()
+    expect(database.node.output).toBe(3)
+  })
+
   it("retries a failed task from its persisted input", async () => {
     const nodeId = Id.node("retryable")
     let executions = 0
