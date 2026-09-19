@@ -15,6 +15,7 @@ export interface SchedulerDatabase {
   ): Promise<void>
   getRun(runId: WorkflowRunRecord["id"]): Promise<WorkflowRunRecord | undefined>
   putNode(instance: NodeInstanceRecord): Promise<void>
+  putDependency?(runId: WorkflowRunRecord["id"], nodeInstanceId: string, dependsOnInstanceId: string): Promise<void>
   getNode(instanceId: string): Promise<NodeInstanceRecord | undefined>
   ready(now: number): Promise<readonly NodeInstanceRecord[]>
   cached?(executionKey: string): Promise<NodeInstanceRecord | undefined>
