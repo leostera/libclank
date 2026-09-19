@@ -1,5 +1,5 @@
 import { Effect } from "effect"
-import { Task as CoreTask, type ExecutionContext, type NodeId, type NodeRun, type RunId, type Task as TaskNode } from "@libclank/core"
+import { Task as CoreTask, type ExecutionContext, type NodeDefinition, type NodeId, type NodeRun, type RunId, type Task as TaskNode } from "@libclank/core"
 
 export const AGENT_TASK_PROTOCOL_VERSION = 1 as const
 
@@ -38,9 +38,16 @@ export const Task = {
     endpoint: AgentEndpoint
     model?: string
     skills?: readonly string[]
+    description?: string
+    version?: string
+    /** Agents cache immutable outputs by input unless explicitly disabled. */
+    cache?: NodeDefinition["cache"]
   }): TaskNode<Input, Output> {
     return CoreTask.fn({
       id: options.id,
+      description: options.description ?? options.instructions,
+      cache: options.cache ?? "by-input",
+      ...(options.version === undefined ? {} : { version: options.version }),
       run: (input, context?: ExecutionContext) => {
         const runId = context?.runId
         if (!runId) return Effect.die(new Error(`Agent task ${options.id} requires a workflow run ID`))
