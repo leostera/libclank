@@ -13,6 +13,12 @@ export interface ExecutionContext {
 export type NodeRun<Output> = Effect.Effect<Output, unknown, never>
 export type NodeFunction<Input, Output> = (input: Input, context?: ExecutionContext) => NodeRun<Output>
 
+/** A source-loaded executable for one workflow step; the function itself is never persisted. */
+export interface StepImplementation {
+  readonly stepId: NodeId
+  readonly node: Node<unknown, unknown>
+}
+
 /** Source-defined metadata persisted by durable schedulers; executable closures are never persisted. */
 export interface NodeDefinition {
   readonly id: NodeId
@@ -36,6 +42,7 @@ export class Node<Input, Output> {
   /** A function property intentionally makes Input contravariant and Output covariant. */
   readonly execute: (input: Input, context?: ExecutionContext) => NodeRun<Output>
   readonly definitions: readonly NodeDefinition[]
+  readonly implementations: readonly StepImplementation[]
 
   constructor(
     readonly id: NodeId,
@@ -52,8 +59,13 @@ export class Node<Input, Output> {
       retry: { maxAttempts: 1, backoffMs: 1000 },
     },
     definitions: readonly NodeDefinition[] = [],
+    implementations: readonly StepImplementation[] = [],
   ) {
     this.definitions = [definition, ...definitions]
+    this.implementations =
+      implementations.length > 0
+        ? implementations
+        : [{ stepId: definition.stepId, node: this as unknown as Node<unknown, unknown> }]
     this.execute = (input, context) => {
       const observer = context?.observer
       const execution = Effect.catchCause(run(input, context), (cause) => {
@@ -120,6 +132,7 @@ export class Node<Input, Output> {
         dependencies: [this.id, ...(next instanceof Node ? [next.id] : [])],
       },
       [...this.definitions, ...(next instanceof Node ? next.definitions : [])],
+      [...this.implementations, ...(next instanceof Node ? next.implementations : [])],
     )
   }
 
@@ -143,6 +156,13 @@ export class Node<Input, Output> {
           stepId: Id.childNode(Id.childNode(this.id, "tap"), Id.name(definition.stepId)),
         })),
       ],
+      [
+        ...this.implementations,
+        ...effect.implementations.map((implementation) => ({
+          stepId: Id.childNode(Id.childNode(this.id, "tap"), Id.name(implementation.stepId)),
+          node: implementation.node,
+        })),
+      ],
     )
   }
 
@@ -159,6 +179,7 @@ export class Node<Input, Output> {
         dependencies: [this.id],
       },
       this.definitions,
+      this.implementations,
     )
   }
 
@@ -189,6 +210,7 @@ export class Node<Input, Output> {
         dependencies: [this.id, ...(next instanceof Node ? [next.id] : [])],
       },
       [...this.definitions, ...(next instanceof Node ? next.definitions : [])],
+      [...this.implementations, ...(next instanceof Node ? next.implementations : [])],
     )
   }
 
@@ -219,6 +241,7 @@ export class Node<Input, Output> {
         dependencies: [this.id],
       },
       this.definitions,
+      this.implementations,
     )
   }
 
@@ -247,6 +270,7 @@ export class Node<Input, Output> {
         dependencies: [this.id, ...Object.values(branches).map((branch) => branch.id)],
       },
       [...this.definitions, ...Object.values(branches).flatMap((branch) => branch.definitions)],
+      [...this.implementations, ...Object.values(branches).flatMap((branch) => branch.implementations)],
     )
   }
 }

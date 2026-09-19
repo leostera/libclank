@@ -28,6 +28,15 @@ export interface TaskRegistry {
   definitions(): readonly NodeDefinition[]
 }
 
+export const createStepRegistry = (workflows: readonly Node<unknown, unknown>[]): TaskRegistry => {
+  const byStep = new Map(
+    workflows.flatMap((workflow) =>
+      workflow.implementations.map((implementation) => [implementation.stepId, implementation.node] as const),
+    ),
+  )
+  return { get: (id) => byStep.get(id), definitions: () => workflows.flatMap((workflow) => workflow.definitions) }
+}
+
 export const createTaskRegistry = (tasks: readonly Node<unknown, unknown>[]): TaskRegistry => {
   const byId = new Map(tasks.map((task) => [task.id, task]))
   return {
