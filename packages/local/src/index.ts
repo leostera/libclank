@@ -3,6 +3,7 @@ import { access, readFile } from "node:fs/promises"
 export { createLocalArtifacts, type LocalArtifactsOptions } from "./artifacts.js"
 export { createLocalSchedulerDatabase } from "./scheduler-database.js"
 export { createLocalSchedulerOperations } from "./operations.js"
+export { discoverLocalSourceMetadata } from "./source-metadata.js"
 export { openFile, type LocalFile } from "./tasks/fs/open-file.js"
 
 /** Human-readable local execution logging for development servers. */
