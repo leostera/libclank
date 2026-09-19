@@ -29,6 +29,8 @@ export interface NodeDefinition {
   readonly cache: "never" | "by-input"
   readonly dependencies: readonly NodeId[]
   readonly retry: { readonly maxAttempts: number; readonly backoffMs: number }
+  readonly kind?: "static" | "fanout-item" | "fanout"
+  readonly fanoutTemplate?: NodeId
 }
 
 export interface TriggerDefinition<Output = unknown> {
@@ -215,8 +217,15 @@ export class Node<Input, Output> {
         id: Id.childNode(this.id, "map-each"),
         stepId: Id.childNode(this.id, "map-each"),
         dependencies: [this.id, ...(next instanceof Node ? [next.id] : [])],
+        kind: "fanout",
+        ...(next instanceof Node ? { fanoutTemplate: next.id } : {}),
       },
-      [...this.definitions, ...(next instanceof Node ? next.definitions : [])],
+      [
+        ...this.definitions,
+        ...(next instanceof Node
+          ? next.definitions.map((definition) => ({ ...definition, kind: "fanout-item" as const }))
+          : []),
+      ],
       [...this.implementations, ...(next instanceof Node ? next.implementations : [])],
     )
   }

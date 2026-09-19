@@ -31,7 +31,8 @@ export interface PersistedTriggerDefinition {
   readonly schedule?: string
 }
 
-function isComposition(id: string): boolean {
+function isComposition(id: string, task?: NodeDefinition): boolean {
+  if (task?.kind === "fanout") return false
   return /\/(then|tap|map|map-each|forEach|fanout)$/.test(id)
 }
 
@@ -48,10 +49,12 @@ function compositionEdges(tasks: readonly NodeDefinition[]): WorkflowManifestEdg
   return tasks.flatMap((task) => {
     if ((task.id.endsWith("/then") || task.id.endsWith("/tap")) && task.dependencies[0] && task.dependencies[1])
       return [{ from: input(task.dependencies[0]), to: output(task.dependencies[1]), kind: "dependency" as const }]
-    if (task.id.endsWith("/fanout") && task.dependencies[0])
-      return task.dependencies
-        .slice(1)
-        .map((branch) => ({ from: output(task.dependencies[0]!), to: input(branch), kind: "dependency" as const }))
+    if ((task.id.endsWith("/fanout") || task.kind === "fanout") && task.dependencies[0])
+      return task.kind === "fanout"
+        ? [{ from: output(task.dependencies[0]), to: task.stepId, kind: "dependency" as const }]
+        : task.dependencies
+            .slice(1)
+            .map((branch) => ({ from: output(task.dependencies[0]!), to: input(branch), kind: "dependency" as const }))
     return []
   })
 }
@@ -60,7 +63,7 @@ function compositionEdges(tasks: readonly NodeDefinition[]): WorkflowManifestEdg
 export const createWorkflowManifest = async (source: WorkflowManifestSource): Promise<WorkflowManifest> => {
   const allTasks = [...new Map(source.tasks.map((task) => [task.stepId, task])).values()]
   const tasks = allTasks
-    .filter((task) => !isComposition(task.id))
+    .filter((task) => !isComposition(task.id, task))
     .sort((left, right) => left.id.localeCompare(right.id))
   const triggers = (source.triggers ?? [])
     .map(({ id, kind, path, schedule }) => ({

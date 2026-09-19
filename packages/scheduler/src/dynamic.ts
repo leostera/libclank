@@ -5,7 +5,7 @@ import type { NodeDefinition } from "@libclank/core"
 /** Materializes one durable step instance per collection item for a map template. */
 export const materializeDynamicSteps = async (options: {
   readonly database: SchedulerDatabase
-  readonly run: WorkflowRunRecord
+  readonly run: Pick<WorkflowRunRecord, "id">
   readonly template: NodeDefinition
   readonly items: readonly unknown[]
   readonly inputArtifacts?: readonly import("@libclank/artifacts").ArtifactRef[]

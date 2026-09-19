@@ -3,6 +3,7 @@ import { Id, serializeExecutionError, type NodeId, type RunId, type SchedulerObs
 import type { SchedulerDatabase } from "./database.js"
 import type { NodeInstanceRecord } from "./run-state.js"
 import type { TaskRegistry } from "@libclank/core"
+import { materializeDynamicSteps } from "./dynamic.js"
 
 export interface RetryPolicy {
   readonly maxAttempts: number
@@ -46,6 +47,42 @@ export class DurableTaskScheduler {
   }
 
   private async execute(node: NodeInstanceRecord): Promise<void> {
+    const task = this.options.tasks.get(node.nodeId)
+    if (!task) {
+      await this.options.database.putNode({
+        ...node,
+        status: "failed",
+        error: serializeExecutionError(new Error(`Task ${node.nodeId} is not registered in this deployment`)),
+      })
+      return
+    }
+    if (task.definition.kind === "fanout" && task.definition.fanoutTemplate) {
+      const allNodes = (await this.options.database.getNodes?.(node.runId)) ?? []
+      const prefix = `${node.runId}:${node.nodeId}:`
+      const children = allNodes.filter((candidate) => candidate.id.startsWith(prefix))
+      if (children.length === 0) {
+        if (!Array.isArray(node.input)) throw new Error(`Fan-out step ${node.nodeId} requires an array input`)
+        const template = task.definitions.find((definition) => definition.stepId === task.definition.fanoutTemplate)
+        if (!template) throw new Error(`Fan-out template ${task.definition.fanoutTemplate} is not registered`)
+        await materializeDynamicSteps({
+          database: this.options.database,
+          run: { id: node.runId },
+          template,
+          items: node.input,
+        })
+        await this.options.database.putNode({ ...node, status: "retry_wait", nextAttemptAt: Date.now() })
+        return
+      }
+      if (children.some((child) => child.status !== "completed")) {
+        await this.options.database.putNode({ ...node, status: "retry_wait", nextAttemptAt: Date.now() })
+        return
+      }
+      const output = children.map((child) => child.output)
+      const { leaseExpiresAt: _lease, error: _error, nextAttemptAt: _next, ...completed } = node
+      await this.options.database.putNode({ ...completed, status: "completed", output })
+      await this.options.database.promoteReady?.(node.runId)
+      return
+    }
     if (node.executionKey) {
       const cached = await this.options.database.cached?.(node.executionKey)
       if (cached) {
@@ -58,15 +95,6 @@ export class DurableTaskScheduler {
         })
         return
       }
-    }
-    const task = this.options.tasks.get(node.nodeId)
-    if (!task) {
-      await this.options.database.putNode({
-        ...node,
-        status: "failed",
-        error: serializeExecutionError(new Error(`Task ${node.nodeId} is not registered in this deployment`)),
-      })
-      return
     }
     try {
       const input = task.inputSchema ? await Schema.decodeUnknownPromise(task.inputSchema)(node.input) : node.input

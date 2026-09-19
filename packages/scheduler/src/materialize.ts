@@ -9,10 +9,13 @@ export const materializeWorkflowRun = async (options: {
   readonly manifest: WorkflowManifest
   readonly input: unknown
 }): Promise<readonly NodeInstanceRecord[]> => {
+  const tasks = options.manifest.tasks.filter((task) => task.kind !== "fanout-item")
   const dependencyTargets = new Set(
-    options.manifest.edges.filter((edge) => edge.kind === "dependency").map((edge) => edge.to),
+    options.manifest.edges
+      .filter((edge) => edge.kind === "dependency" && tasks.some((task) => task.stepId === edge.to))
+      .map((edge) => edge.to),
   )
-  const instances = options.manifest.tasks.map((task) => ({
+  const instances = tasks.map((task) => ({
     id: `${options.run.id}:${task.stepId}`,
     runId: options.run.id,
     nodeId: task.stepId,
@@ -23,7 +26,12 @@ export const materializeWorkflowRun = async (options: {
   }))
   for (const instance of instances) await options.database.putNode(instance)
   const instanceByStep = new Map(instances.map((instance) => [String(instance.nodeId), instance.id]))
-  for (const edge of options.manifest.edges.filter((edge) => edge.kind === "dependency")) {
+  for (const edge of options.manifest.edges.filter(
+    (edge) =>
+      edge.kind === "dependency" &&
+      tasks.some((task) => task.stepId === edge.to) &&
+      tasks.some((task) => task.stepId === edge.from),
+  )) {
     const target = instanceByStep.get(edge.to)
     const dependency = instanceByStep.get(edge.from)
     if (target && dependency) await options.database.putDependency?.(options.run.id, target, dependency)
