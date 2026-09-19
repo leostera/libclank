@@ -20,9 +20,17 @@ const Manifest = Schema.Struct({
   edges: Schema.optional(Schema.Array(Edge)),
 })
 const Instance = Schema.Struct({ nodeId: Schema.String, status: Schema.String, attempt: Schema.Number })
+const Event = Schema.Struct({
+  type: Schema.String,
+  nodeId: Schema.optional(Schema.String),
+  attempt: Schema.optional(Schema.Number),
+  error: Schema.optional(Schema.Unknown),
+  output: Schema.optional(Schema.Unknown),
+})
 type Run = Schema.Schema.Type<typeof Run>
 type Manifest = Schema.Schema.Type<typeof Manifest>
 type Instance = Schema.Schema.Type<typeof Instance>
+type Event = Schema.Schema.Type<typeof Event>
 
 export interface RunGraphProps {
   readonly runId: string
@@ -34,18 +42,22 @@ export const RunGraph = ({ runId, apiBase = "/api" }: RunGraphProps) => {
   const [run, setRun] = useState<Run>()
   const [manifest, setManifest] = useState<Manifest>()
   const [instances, setInstances] = useState<readonly Instance[]>([])
+  const [events, setEvents] = useState<readonly Event[]>([])
   useEffect(() => {
     const load = async () => {
-      const [runValue, nodesValue, workflowsValue] = await Promise.all([
+      const [runValue, nodesValue, eventsValue, workflowsValue] = await Promise.all([
         fetch(`${apiBase}/runs/${encodeURIComponent(runId)}`).then((response) => response.json()),
         fetch(`${apiBase}/runs/${encodeURIComponent(runId)}/nodes`).then((response) => response.json()),
+        fetch(`${apiBase}/runs/${encodeURIComponent(runId)}/events`).then((response) => response.json()),
         fetch(`${apiBase}/workflows`).then((response) => response.json()),
       ])
       const nextRun = await Schema.decodeUnknownPromise(Run)(runValue)
       const nextInstances = await Schema.decodeUnknownPromise(Schema.Array(Instance))(nodesValue)
+      const nextEvents = await Schema.decodeUnknownPromise(Schema.Array(Event))(eventsValue)
       const workflows = await Schema.decodeUnknownPromise(Schema.Array(Manifest))(workflowsValue)
       setRun(nextRun)
       setInstances(nextInstances)
+      setEvents(nextEvents)
       setManifest(workflows.find((item) => item.definitionHash === nextRun.workflowDefinitionHash))
     }
     void load()
@@ -115,13 +127,34 @@ export const RunGraph = ({ runId, apiBase = "/api" }: RunGraphProps) => {
   )
   if (!run || !manifest) return <p>Loading run graph…</p>
   return (
-    <section style={{ height: 600 }}>
+    <section>
       <h2>Run {run.id}</h2>
       <p>Status: {run.status}</p>
-      <ReactFlow nodes={nodes} edges={edges} fitView>
-        <Background />
-        <Controls />
-      </ReactFlow>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 360px", gap: 16, height: 600 }}>
+        <ReactFlow nodes={nodes} edges={edges} fitView>
+          <Background />
+          <Controls />
+        </ReactFlow>
+        <aside style={{ overflow: "auto", borderLeft: "1px solid #ddd", paddingLeft: 16 }}>
+          <h3>Run logs</h3>
+          {events.length === 0 ? (
+            <p>No events yet.</p>
+          ) : (
+            events.map((event, index) => (
+              <article key={`${event.type}:${index}`} style={{ marginBottom: 12 }}>
+                <strong>{event.type}</strong>
+                {event.nodeId && (
+                  <div>
+                    <code>{event.nodeId}</code>
+                  </div>
+                )}
+                {event.error !== undefined && <pre>{JSON.stringify(event.error, null, 2)}</pre>}
+                {event.output !== undefined && <pre>{JSON.stringify(event.output, null, 2)}</pre>}
+              </article>
+            ))
+          )}
+        </aside>
+      </div>
     </section>
   )
 }

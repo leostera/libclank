@@ -37,10 +37,17 @@ function isComposition(id: string, task?: NodeDefinition): boolean {
 }
 
 function compositionEdges(tasks: readonly NodeDefinition[]): WorkflowManifestEdge[] {
-  const byId = new Map(tasks.map((task) => [task.id, task]))
+  const byId = new Map<string, NodeDefinition>()
+  for (const task of tasks) if (!byId.has(task.id)) byId.set(task.id, task)
   const output = (id: string): string => {
     const task = byId.get(Id.node(id))
-    return task && /(then|tap)$/.test(id) && task.dependencies[1] ? output(task.dependencies[1]) : (task?.stepId ?? id)
+    if (task && /\/tap$/.test(id) && task.dependencies[1]) {
+      const composedOutput = tasks.find(
+        (candidate) => candidate.stepId === Id.childNode(task.stepId, Id.name(task.dependencies[1]!)),
+      )
+      return composedOutput?.stepId ?? task.stepId
+    }
+    return task && /\/then$/.test(id) && task.dependencies[1] ? output(task.dependencies[1]) : (task?.stepId ?? id)
   }
   const input = (id: string): string => {
     const task = byId.get(Id.node(id))
@@ -54,7 +61,7 @@ function compositionEdges(tasks: readonly NodeDefinition[]): WorkflowManifestEdg
         ? [{ from: output(task.dependencies[0]), to: task.stepId, kind: "dependency" as const }]
         : task.dependencies
             .slice(1)
-            .map((branch) => ({ from: output(task.dependencies[0]!), to: input(branch), kind: "dependency" as const }))
+            .map((branch) => ({ from: output(task.dependencies[0]!), to: output(branch), kind: "dependency" as const }))
     return []
   })
 }
