@@ -89,7 +89,7 @@ export const RunGraph = ({ runId, apiBase = "/api" }: RunGraphProps) => {
       const level = levels.get(node.id) ?? 0
       const row = rows.get(level) ?? 0
       rows.set(level, row + 1)
-      return { ...node, position: { x: level * 320, y: row * 170 } }
+      return { ...node, position: { x: row * 320, y: level * 170 } }
     })
   }, [instances, manifest])
   const edges = useMemo<Edge[]>(
