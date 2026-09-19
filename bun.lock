@@ -9,6 +9,8 @@
         "@libclank/cloudflare": "workspace:*",
         "@libclank/core": "workspace:*",
         "@libclank/local": "workspace:*",
+        "@libclank/scheduler": "workspace:*",
+        "@libclank/ui": "workspace:*",
         "effect": "4.0.0-rc.116",
       },
       "devDependencies": {
@@ -111,6 +113,7 @@
       "dependencies": {
         "@libclank/core": "workspace:*",
         "@libclank/scheduler": "workspace:*",
+        "effect": "4.0.0-rc.116",
         "hono": "^4.13.8",
         "react": "^19.3.0",
         "react-dom": "^19.3.0",

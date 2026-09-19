@@ -2,8 +2,18 @@ import { mkdir } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { Task } from "@libclank/agent"
 import { createTriggerApp } from "@libclank/cloudflare"
-import { Id, Triggers, createScheduler } from "@libclank/core"
-import { createConsoleObserver, createPiEndpoint, fileOutput, logListeningTriggers, openFile } from "@libclank/local"
+import { Id, Triggers } from "@libclank/core"
+import {
+  createConsoleObserver,
+  createLocalSchedulerDatabase,
+  createLocalSchedulerOperations,
+  createPiEndpoint,
+  fileOutput,
+  logListeningTriggers,
+  openFile,
+} from "@libclank/local"
+import { createDurableScheduler } from "@libclank/scheduler"
+import { createDashboardApi, dashboardHtml } from "@libclank/ui"
 
 type SourceRequest = { readonly url: string; readonly path: string }
 type MarkdownArtifact = { readonly url: string; readonly path: string }
@@ -84,11 +94,15 @@ const workflow = trigger.then(fetchContent).fanout({
   confidence: analyzeConfidence.tap(openAnalysis),
 })
 
-const scheduler = createScheduler({ workflows: [workflow], observer: createConsoleObserver() })
+const database = createLocalSchedulerDatabase()
+const scheduler = await createDurableScheduler({ workflows: [workflow], database, observer: createConsoleObserver() })
 const app = createTriggerApp(scheduler)
+app.route("/api", createDashboardApi(createLocalSchedulerOperations(database)))
+app.get("/", () => new Response(dashboardHtml("/api"), { headers: { "content-type": "text/html; charset=utf-8" } }))
 
 Bun.serve({ port: 8789, fetch: app.fetch })
 console.log("Local LibClank parallel-analysis server listening on http://localhost:8789")
+console.log("Dashboard available at http://localhost:8789/")
 logListeningTriggers(scheduler.triggers)
 
 function artifactPath(kind: string): string {
