@@ -48,22 +48,49 @@ export const RunGraph = ({ runId, apiBase = "/api" }: RunGraphProps) => {
     return () => clearInterval(timer)
   }, [apiBase, runId])
   const nodes = useMemo<FlowNode[]>(() => {
-    const triggerNodes = (manifest?.triggers ?? []).map((trigger, index) => ({
+    if (!manifest) return []
+    const triggerNodes = manifest.triggers.map((trigger) => ({
       id: `trigger:${trigger.id}`,
-      position: { x: index * 260, y: 0 },
       data: { label: `⚡ ${trigger.kind}\n${trigger.path ?? trigger.id}` },
       style: { borderColor: "#7c3aed", whiteSpace: "pre-line" },
     }))
-    const taskNodes = (manifest?.tasks ?? []).map((task, index) => {
+    const taskNodes = manifest.tasks.map((task) => {
       const instance = instances.find((item) => item.nodeId === task.id)
       return {
         id: task.id,
-        position: { x: (index % 3) * 260, y: 140 + Math.floor(index / 3) * 140 },
         data: { label: `${task.description}\n${instance?.status ?? "pending"} · attempt ${instance?.attempt ?? 0}` },
         style: { whiteSpace: "pre-line", borderColor: color(instance?.status) },
       }
     })
-    return [...triggerNodes, ...taskNodes]
+    const all = [...triggerNodes, ...taskNodes]
+    const manifestEdges = manifest.edges ?? []
+    const levels = new Map<string, number>()
+    const levelOf = (id: string, visiting = new Set<string>()): number => {
+      if (levels.has(id)) return levels.get(id)!
+      if (visiting.has(id)) return 0
+      visiting.add(id)
+      const parents = manifestEdges.filter(
+        (edge) => (edge.kind === "trigger" ? `trigger:${edge.from}` : edge.from) !== id && edge.to === id,
+      )
+      const level =
+        parents.length === 0
+          ? 0
+          : Math.max(
+              ...parents.map(
+                (edge) => levelOf(edge.kind === "trigger" ? `trigger:${edge.from}` : edge.from, visiting) + 1,
+              ),
+            )
+      levels.set(id, level)
+      return level
+    }
+    for (const node of all) levelOf(node.id)
+    const rows = new Map<number, number>()
+    return all.map((node) => {
+      const level = levels.get(node.id) ?? 0
+      const row = rows.get(level) ?? 0
+      rows.set(level, row + 1)
+      return { ...node, position: { x: level * 320, y: row * 170 } }
+    })
   }, [instances, manifest])
   const edges = useMemo<Edge[]>(
     () =>
