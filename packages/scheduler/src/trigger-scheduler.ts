@@ -49,6 +49,19 @@ export const createDurableScheduler = async <Input = void, Output = unknown>(opt
             createdAt: now,
             updatedAt: now,
           })
+          await options.database.appendEvent?.({
+            eventId: Id.event(),
+            type: "trigger.received",
+            runId,
+            triggerId,
+            payload: value,
+          })
+          await options.database.appendEvent?.({
+            eventId: Id.event(),
+            type: "workflow.scheduled",
+            runId,
+            workflowId: workflow.id,
+          })
           const node: NodeInstanceRecord = {
             id: `${runId}:${workflow.id}`,
             runId,
@@ -59,6 +72,13 @@ export const createDurableScheduler = async <Input = void, Output = unknown>(opt
             attempt: 1,
           }
           await options.database.putNode(node)
+          await options.database.appendEvent?.({
+            eventId: Id.event(),
+            type: "node.started",
+            runId,
+            nodeId: workflow.id,
+            attempt: 1,
+          })
           try {
             const output = await Effect.runPromise(
               workflow.execute(undefined as Input, {
@@ -70,11 +90,39 @@ export const createDurableScheduler = async <Input = void, Output = unknown>(opt
             )
             await options.database.putNode({ ...node, status: "completed", output })
             await options.database.updateRun?.(runId, { status: "completed", updatedAt: Date.now() })
+            await options.database.appendEvent?.({
+              eventId: Id.event(),
+              type: "node.completed",
+              runId,
+              nodeId: workflow.id,
+              output,
+              durationMs: Date.now() - now,
+            })
+            await options.database.appendEvent?.({
+              eventId: Id.event(),
+              type: "workflow.completed",
+              runId,
+              status: "completed",
+            })
             return { id: runId, workflowId: workflow.id, triggerId, status: "completed", output } as WorkflowRun
           } catch (error) {
             const serialized = serializeExecutionError(error)
             await options.database.putNode({ ...node, status: "failed", error: serialized })
             await options.database.updateRun?.(runId, { status: "failed", updatedAt: Date.now() })
+            await options.database.appendEvent?.({
+              eventId: Id.event(),
+              type: "node.failed",
+              runId,
+              nodeId: workflow.id,
+              attempt: 1,
+              error: serialized,
+            })
+            await options.database.appendEvent?.({
+              eventId: Id.event(),
+              type: "workflow.completed",
+              runId,
+              status: "failed",
+            })
             return { id: runId, workflowId: workflow.id, triggerId, status: "failed", error: serialized } as WorkflowRun
           }
         }),
