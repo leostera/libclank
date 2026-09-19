@@ -16,5 +16,9 @@ export const createDashboardApi = (operations: SchedulerOperations): Hono => {
   app.get("/runs/:runId/events", async (context) =>
     context.json(await operations.getEvents(Id.runFrom(context.req.param("runId")))),
   )
+  app.post("/triggers/:triggerId", async (context) => {
+    if (!operations.trigger) return context.json({ error: "Triggering is not configured" }, 501)
+    return context.json(await operations.trigger(context.req.param("triggerId"), await context.req.json()))
+  })
   return app
 }

@@ -1,0 +1,88 @@
+import { Schema } from "effect"
+import { useEffect, useMemo, useState } from "react"
+import { Background, Controls, ReactFlow, type Edge, type Node as FlowNode } from "@xyflow/react"
+import "@xyflow/react/dist/style.css"
+
+const Run = Schema.Struct({ id: Schema.String, workflowDefinitionHash: Schema.String, status: Schema.String })
+const Task = Schema.Struct({ id: Schema.String, description: Schema.String, dependencies: Schema.Array(Schema.String) })
+const Manifest = Schema.Struct({ workflowId: Schema.String, definitionHash: Schema.String, tasks: Schema.Array(Task) })
+const Instance = Schema.Struct({ nodeId: Schema.String, status: Schema.String, attempt: Schema.Number })
+type Run = Schema.Schema.Type<typeof Run>
+type Manifest = Schema.Schema.Type<typeof Manifest>
+type Instance = Schema.Schema.Type<typeof Instance>
+
+export interface RunGraphProps {
+  readonly runId: string
+  readonly apiBase?: string
+}
+
+/** React Flow execution graph. It is read-only and reflects persisted node state. */
+export const RunGraph = ({ runId, apiBase = "/api" }: RunGraphProps) => {
+  const [run, setRun] = useState<Run>()
+  const [manifest, setManifest] = useState<Manifest>()
+  const [instances, setInstances] = useState<readonly Instance[]>([])
+  useEffect(() => {
+    const load = async () => {
+      const [runValue, nodesValue, workflowsValue] = await Promise.all([
+        fetch(`${apiBase}/runs/${encodeURIComponent(runId)}`).then((response) => response.json()),
+        fetch(`${apiBase}/runs/${encodeURIComponent(runId)}/nodes`).then((response) => response.json()),
+        fetch(`${apiBase}/workflows`).then((response) => response.json()),
+      ])
+      const nextRun = await Schema.decodeUnknownPromise(Run)(runValue)
+      const nextInstances = await Schema.decodeUnknownPromise(Schema.Array(Instance))(nodesValue)
+      const workflows = await Schema.decodeUnknownPromise(Schema.Array(Manifest))(workflowsValue)
+      setRun(nextRun)
+      setInstances(nextInstances)
+      setManifest(workflows.find((item) => item.definitionHash === nextRun.workflowDefinitionHash))
+    }
+    void load()
+    const timer = setInterval(load, 2000)
+    return () => clearInterval(timer)
+  }, [apiBase, runId])
+  const nodes = useMemo<FlowNode[]>(
+    () =>
+      (manifest?.tasks ?? []).map((task, index) => {
+        const instance = instances.find((item) => item.nodeId === task.id)
+        return {
+          id: task.id,
+          position: { x: (index % 3) * 260, y: Math.floor(index / 3) * 140 },
+          data: { label: `${task.description}\n${instance?.status ?? "pending"} · attempt ${instance?.attempt ?? 0}` },
+          style: { whiteSpace: "pre-line", borderColor: color(instance?.status) },
+        }
+      }),
+    [instances, manifest],
+  )
+  const edges = useMemo<Edge[]>(
+    () =>
+      (manifest?.tasks ?? []).flatMap((task) =>
+        task.dependencies.map((dependency) => ({
+          id: `${dependency}->${task.id}`,
+          source: dependency,
+          target: task.id,
+          animated: instances.find((item) => item.nodeId === task.id)?.status === "running",
+        })),
+      ),
+    [instances, manifest],
+  )
+  if (!run || !manifest) return <p>Loading run graph…</p>
+  return (
+    <section style={{ height: 600 }}>
+      <h2>Run {run.id}</h2>
+      <p>Status: {run.status}</p>
+      <ReactFlow nodes={nodes} edges={edges} fitView>
+        <Background />
+        <Controls />
+      </ReactFlow>
+    </section>
+  )
+}
+
+function color(status: string | undefined): string {
+  return status === "completed"
+    ? "#16a34a"
+    : status === "failed"
+      ? "#dc2626"
+      : status === "running"
+        ? "#2563eb"
+        : "#9ca3af"
+}

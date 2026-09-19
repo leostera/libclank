@@ -9,4 +9,5 @@ export interface SchedulerOperations {
   getRun(runId: RunId): Promise<WorkflowRunRecord | undefined>
   getNodes(runId: RunId): Promise<readonly NodeInstanceRecord[]>
   getEvents(runId: RunId): Promise<readonly ExecutionEvent[]>
+  trigger?(triggerId: string, input: unknown): Promise<readonly unknown[]>
 }

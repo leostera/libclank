@@ -97,7 +97,11 @@ const workflow = trigger.then(fetchContent).fanout({
 const database = createLocalSchedulerDatabase()
 const scheduler = await createDurableScheduler({ workflows: [workflow], database, observer: createConsoleObserver() })
 const app = createTriggerApp(scheduler)
-app.route("/api", createDashboardApi(createLocalSchedulerOperations(database)))
+const operations = {
+  ...createLocalSchedulerOperations(database),
+  trigger: (triggerId: string, input: unknown) => scheduler.runTrigger(Id.trigger(triggerId), input),
+}
+app.route("/api", createDashboardApi(operations))
 app.get("/", () => new Response(dashboardHtml("/api"), { headers: { "content-type": "text/html; charset=utf-8" } }))
 
 Bun.serve({ port: 8789, fetch: app.fetch })
