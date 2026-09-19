@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import Database from "better-sqlite3"
 import {
-  SCHEDULER_SQLITE_SCHEMA,
+  applyMigrations,
   type NodeInstanceRecord,
   type SchedulerDatabase,
   type WorkflowManifest,
@@ -14,7 +14,15 @@ export const createLocalSchedulerDatabase = (path = resolve(".clank/scheduler.sq
   mkdirSync(dirname(path), { recursive: true })
   const db = new Database(path)
   db.pragma("journal_mode = WAL")
-  db.exec(SCHEDULER_SQLITE_SCHEMA)
+  applyMigrations({
+    exec: (sql) => db.exec(sql),
+    appliedVersions: () =>
+      (db.prepare("SELECT version FROM schema_migrations ORDER BY version").all() as { version: number }[]).map(
+        (row) => row.version,
+      ),
+    record: (version) =>
+      db.prepare("INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)").run(version, Date.now()),
+  })
   return {
     async register(manifest) {
       db.prepare("INSERT OR REPLACE INTO workflow_definitions VALUES (?, ?, ?, ?)").run(
