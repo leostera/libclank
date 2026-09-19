@@ -1,0 +1,19 @@
+{
+  "name": "@libclank/local",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./tasks/fs/open-file": { "types": "./dist/tasks/fs/open-file.d.ts", "default": "./dist/tasks/fs/open-file.js" }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@libclank/agent": "workspace:*",
+    "effect": "4.0.0-rc.116"
+  }
+}

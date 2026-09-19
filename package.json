@@ -1,0 +1,29 @@
+{
+  "name": "libclank",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.3.11",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "bun run --filter '*' build",
+    "typecheck": "bun run --filter '*' typecheck",
+    "test": "vitest run && bun run --filter @libclank/app-scheduler test",
+    "example:url-summary": "bun run build && bun examples/local-url-summary/server.ts"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.0"
+  },
+  "dependencies": {
+    "@libclank/agent": "workspace:*",
+    "@libclank/cloudflare": "workspace:*",
+    "@libclank/core": "workspace:*",
+    "@libclank/local": "workspace:*",
+    "effect": "4.0.0-rc.116"
+  }
+}
