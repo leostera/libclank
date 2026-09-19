@@ -53,9 +53,23 @@ function compositionEdges(tasks: readonly NodeDefinition[]): WorkflowManifestEdg
     const task = byId.get(Id.node(id))
     return task && /(then|tap)$/.test(id) && task.dependencies[0] ? input(task.dependencies[0]) : (task?.stepId ?? id)
   }
+  const tapOutput = (task: NodeDefinition): string => {
+    const dependency = task.dependencies[1]
+    if (!dependency) return task.stepId
+    return (
+      tasks.find((candidate) => candidate.stepId === Id.childNode(task.stepId, Id.name(dependency)))?.stepId ??
+      task.stepId
+    )
+  }
   return tasks.flatMap((task) => {
     if ((task.id.endsWith("/then") || task.id.endsWith("/tap")) && task.dependencies[0] && task.dependencies[1])
-      return [{ from: input(task.dependencies[0]), to: output(task.dependencies[1]), kind: "dependency" as const }]
+      return [
+        {
+          from: input(task.dependencies[0]),
+          to: task.id.endsWith("/tap") ? tapOutput(task) : output(task.dependencies[1]),
+          kind: "dependency" as const,
+        },
+      ]
     if ((task.id.endsWith("/fanout") || task.kind === "fanout") && task.dependencies[0])
       return task.kind === "fanout"
         ? [{ from: output(task.dependencies[0]), to: task.stepId, kind: "dependency" as const }]
