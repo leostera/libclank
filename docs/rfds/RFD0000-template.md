@@ -6,11 +6,13 @@
 - Poneglyph Issue: [leostera/poneglyph#0000](https://github.com/leostera/poneglyph/issues/0000)
 
 ## Summary
+
 [summary]: #summary
 
 One paragraph explanation of the Poneglyph feature or system improvement.
 
 ## Motivation
+
 [motivation]: #motivation
 
 Any changes to Poneglyph should focus on solving a real problem for Poneglyph users, operators, or contributors.
@@ -22,6 +24,7 @@ This can then be used to guide the design of the feature.
 This section is one of the most important sections of any RFD, and can be lengthy.
 
 ## Guide-level explanation
+
 [guide-level-explanation]: #guide-level-explanation
 
 Explain the proposal as if it was already included in Poneglyph and you were teaching it to another Poneglyph contributor. That generally means:
@@ -46,6 +49,7 @@ flowchart TD
 ```
 
 ## Reference-level explanation
+
 [reference-level-explanation]: #reference-level-explanation
 
 This is the technical portion of the RFD. Explain the design in sufficient detail that:
@@ -57,11 +61,13 @@ This is the technical portion of the RFD. Explain the design in sufficient detai
 The section should return to the examples given in the previous section, and explain more fully how the detailed proposal makes those examples work.
 
 ## Drawbacks
+
 [drawbacks]: #drawbacks
 
-Why should we *not* do this?
+Why should we _not_ do this?
 
 ## Rationale and alternatives
+
 [rationale-and-alternatives]: #rationale-and-alternatives
 
 - Why is this design the best in the space of possible designs?
@@ -70,6 +76,7 @@ Why should we *not* do this?
 - Could this be done in a simpler Poneglyph module, library helper, or port-level integration instead?
 
 ## Prior art
+
 [prior-art]: #prior-art
 
 Discuss prior art, both the good and the bad, in relation to this proposal.
@@ -87,6 +94,7 @@ Note that precedent in another system can be motivating, but does not on its own
 Poneglyph may intentionally diverge from common patterns when it better fits Poneglyph's architecture and goals.
 
 ## Unresolved questions
+
 [unresolved-questions]: #unresolved-questions
 
 - What parts of the design do you expect to resolve through the RFD process before this gets merged?
@@ -94,6 +102,7 @@ Poneglyph may intentionally diverge from common patterns when it better fits Pon
 - What related issues are out of scope for this RFD that could be addressed in the future independently of this proposal?
 
 ## Future possibilities
+
 [future-possibilities]: #future-possibilities
 
 Think about what the natural extension and evolution of your proposal would be and how it would affect Poneglyph holistically over time.

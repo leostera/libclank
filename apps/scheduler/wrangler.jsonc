@@ -4,7 +4,7 @@
   "compatibility_date": "2025-01-01",
   "services": [{ "binding": "AGENT", "service": "libclank-agent" }],
   "durable_objects": {
-    "bindings": [{ "name": "WORKFLOW_RUN", "class_name": "WorkflowRun" }]
+    "bindings": [{ "name": "WORKFLOW_RUN", "class_name": "WorkflowRun" }],
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["WorkflowRun"] }]
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["WorkflowRun"] }],
 }

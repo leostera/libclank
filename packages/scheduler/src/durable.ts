@@ -4,17 +4,22 @@ import type { SchedulerDatabase } from "./database.js"
 import type { NodeInstanceRecord } from "./run-state.js"
 import type { TaskRegistry } from "@libclank/core"
 
-export interface RetryPolicy { readonly maxAttempts: number; readonly backoffMs: (attempt: number) => number }
+export interface RetryPolicy {
+  readonly maxAttempts: number
+  readonly backoffMs: (attempt: number) => number
+}
 
 /** Durable local/DO-compatible execution loop. The database, not the call stack, is authoritative. */
 export class DurableTaskScheduler {
-  constructor(private readonly options: {
-    readonly database: SchedulerDatabase
-    readonly tasks: TaskRegistry
-    readonly observer?: SchedulerObserver
-    readonly retry?: RetryPolicy
-    readonly leaseMs?: number
-  }) {}
+  constructor(
+    private readonly options: {
+      readonly database: SchedulerDatabase
+      readonly tasks: TaskRegistry
+      readonly observer?: SchedulerObserver
+      readonly retry?: RetryPolicy
+      readonly leaseMs?: number
+    },
+  ) {}
 
   async recover(now = Date.now()): Promise<void> {
     await this.options.database.recoverExpired?.(now)
@@ -37,26 +42,51 @@ export class DurableTaskScheduler {
       const cached = await this.options.database.cached?.(node.executionKey)
       if (cached) {
         const { leaseExpiresAt: _lease, ...reused } = node
-        await this.options.database.putNode({ ...reused, status: "completed", ...(cached.output === undefined ? {} : { output: cached.output }), ...(cached.outputArtifacts === undefined ? {} : { outputArtifacts: cached.outputArtifacts }) })
+        await this.options.database.putNode({
+          ...reused,
+          status: "completed",
+          ...(cached.output === undefined ? {} : { output: cached.output }),
+          ...(cached.outputArtifacts === undefined ? {} : { outputArtifacts: cached.outputArtifacts }),
+        })
         return
       }
     }
     const task = this.options.tasks.get(node.nodeId)
     if (!task) {
-      await this.options.database.putNode({ ...node, status: "failed", error: serializeExecutionError(new Error(`Task ${node.nodeId} is not registered in this deployment`)) })
+      await this.options.database.putNode({
+        ...node,
+        status: "failed",
+        error: serializeExecutionError(new Error(`Task ${node.nodeId} is not registered in this deployment`)),
+      })
       return
     }
     try {
-      const output = await Effect.runPromise(task.execute(node.input, { runId: node.runId, nodeId: node.nodeId, triggerValues: new Map(), ...(this.options.observer === undefined ? {} : { observer: this.options.observer }) }) as Effect.Effect<unknown, unknown, never>)
+      const output = await Effect.runPromise(
+        task.execute(node.input, {
+          runId: node.runId,
+          nodeId: node.nodeId,
+          triggerValues: new Map(),
+          ...(this.options.observer === undefined ? {} : { observer: this.options.observer }),
+        }) as Effect.Effect<unknown, unknown, never>,
+      )
       const { leaseExpiresAt: _lease, error: _error, nextAttemptAt: _next, ...completed } = node
       await this.options.database.putNode({ ...completed, status: "completed", output })
     } catch (error) {
       const retry = this.options.retry ?? { maxAttempts: 3, backoffMs: (attempt: number) => 1000 * 2 ** (attempt - 1) }
       const next = node.attempt < retry.maxAttempts
       const { leaseExpiresAt: _lease, output: _output, outputArtifacts: _outputArtifacts, ...failed } = node
-      await this.options.database.putNode({ ...failed, status: next ? "retry_wait" : "failed", ...(next ? { nextAttemptAt: Date.now() + retry.backoffMs(node.attempt) } : {}), error: serializeExecutionError(error) })
+      await this.options.database.putNode({
+        ...failed,
+        status: next ? "retry_wait" : "failed",
+        ...(next ? { nextAttemptAt: Date.now() + retry.backoffMs(node.attempt) } : {}),
+        error: serializeExecutionError(error),
+      })
     }
   }
 }
 
-export interface DurableNodeInput { readonly runId: RunId; readonly nodeId: NodeId; readonly input: unknown }
+export interface DurableNodeInput {
+  readonly runId: RunId
+  readonly nodeId: NodeId
+  readonly input: unknown
+}

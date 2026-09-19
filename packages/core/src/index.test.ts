@@ -16,14 +16,20 @@ describe("identifiers", () => {
 
 describe("node typing", () => {
   it("maps a scalar output into the shape required by a downstream task", () => {
-    const source = Task.fn<void, { outputPath: string }>({ id: Id.node("source"), run: () => Effect.succeed({ outputPath: "summary.md" }) })
+    const source = Task.fn<void, { outputPath: string }>({
+      id: Id.node("source"),
+      run: () => Effect.succeed({ outputPath: "summary.md" }),
+    })
     const openFile = Task.effect<{ path: string }>({ id: Id.node("open-file"), run: () => Effect.void })
 
     source.map(({ outputPath }) => ({ path: outputPath })).tap(openFile)
   })
 
   it("rejects incompatible downstream input shapes", () => {
-    const upstream = Task.fn<void, { outputPath: string }>({ id: Id.node("output-path"), run: () => Effect.succeed({ outputPath: "summary.md" }) })
+    const upstream = Task.fn<void, { outputPath: string }>({
+      id: Id.node("output-path"),
+      run: () => Effect.succeed({ outputPath: "summary.md" }),
+    })
     const openFile = Task.effect<{ path: string }>({ id: Id.node("open-file"), run: () => Effect.void })
 
     // @ts-expect-error An outputPath artifact cannot satisfy a task requiring path.
@@ -37,17 +43,25 @@ describe("scheduler", () => {
     const trigger = Triggers.manual({ id: Id.trigger("run") })
     const double = Task.fn<number, number>({
       id: Id.node("double"),
-      run: (value) => Effect.sync(() => {
-        calls.push("double")
-        return value * 2
-      }),
+      run: (value) =>
+        Effect.sync(() => {
+          calls.push("double")
+          return value * 2
+        }),
     })
-    const workflow = trigger.then(Task.fn<void, number>({
-      id: Id.node("seed"),
-      run: () => Effect.succeed(21),
-    })).then(double)
+    const workflow = trigger
+      .then(
+        Task.fn<void, number>({
+          id: Id.node("seed"),
+          run: () => Effect.succeed(21),
+        }),
+      )
+      .then(double)
 
-    const [result] = await createScheduler({ workflows: [workflow], observer: SchedulerObservers.noop }).runTrigger(trigger.triggers[0]!.id, undefined)
+    const [result] = await createScheduler({ workflows: [workflow], observer: SchedulerObservers.noop }).runTrigger(
+      trigger.triggers[0]!.id,
+      undefined,
+    )
 
     expect(result?.status).toBe("completed")
     expect(result?.output).toBe(42)
@@ -62,7 +76,10 @@ describe("scheduler", () => {
       timesTwo: Task.fn<number, number>({ id: Id.node("times-two"), run: (value) => Effect.succeed(value * 2) }),
     })
 
-    const [result] = await createScheduler({ workflows: [workflow], observer: SchedulerObservers.noop }).runTrigger(trigger.triggers[0]!.id, undefined)
+    const [result] = await createScheduler({ workflows: [workflow], observer: SchedulerObservers.noop }).runTrigger(
+      trigger.triggers[0]!.id,
+      undefined,
+    )
 
     expect(result?.status).toBe("completed")
     expect(result?.output).toEqual({ plusOne: 4, timesTwo: 6 })
@@ -70,10 +87,17 @@ describe("scheduler", () => {
 
   it("maps a collection through a task", async () => {
     const trigger = Triggers.manual({ id: Id.trigger("map") })
-    const numbers = trigger.then(Task.fn<void, readonly number[]>({ id: Id.node("numbers"), run: () => Effect.succeed([1, 2, 3]) }))
-    const workflow = numbers.mapEach(Task.fn<number, number>({ id: Id.node("square"), run: (value) => Effect.succeed(value * value) }))
+    const numbers = trigger.then(
+      Task.fn<void, readonly number[]>({ id: Id.node("numbers"), run: () => Effect.succeed([1, 2, 3]) }),
+    )
+    const workflow = numbers.mapEach(
+      Task.fn<number, number>({ id: Id.node("square"), run: (value) => Effect.succeed(value * value) }),
+    )
 
-    const [result] = await createScheduler({ workflows: [workflow], observer: SchedulerObservers.noop }).runTrigger(trigger.triggers[0]!.id, undefined)
+    const [result] = await createScheduler({ workflows: [workflow], observer: SchedulerObservers.noop }).runTrigger(
+      trigger.triggers[0]!.id,
+      undefined,
+    )
 
     expect(result?.status).toBe("completed")
     expect(result?.output).toEqual([1, 4, 9])
@@ -82,16 +106,26 @@ describe("scheduler", () => {
   it("does not run downstream work after a failure", async () => {
     const calls: string[] = []
     const trigger = Triggers.manual({ id: Id.trigger("failure") })
-    const failing = trigger.then(Task.fn<void, never>({
-      id: Id.node("fail"),
-      run: () => Effect.fail(new Error("expected failure")),
-    }))
-    const workflow = failing.then(Task.effect({
-      id: Id.node("should-not-run"),
-      run: () => Effect.sync(() => { calls.push("ran") }),
-    }))
+    const failing = trigger.then(
+      Task.fn<void, never>({
+        id: Id.node("fail"),
+        run: () => Effect.fail(new Error("expected failure")),
+      }),
+    )
+    const workflow = failing.then(
+      Task.effect({
+        id: Id.node("should-not-run"),
+        run: () =>
+          Effect.sync(() => {
+            calls.push("ran")
+          }),
+      }),
+    )
 
-    const [result] = await createScheduler({ workflows: [workflow], observer: SchedulerObservers.noop }).runTrigger(trigger.triggers[0]!.id, undefined)
+    const [result] = await createScheduler({ workflows: [workflow], observer: SchedulerObservers.noop }).runTrigger(
+      trigger.triggers[0]!.id,
+      undefined,
+    )
 
     expect(result?.status).toBe("failed")
     expect(result?.error).toMatchObject({
@@ -105,10 +139,12 @@ describe("scheduler", () => {
   it("oneOf accepts either trigger", async () => {
     const first = Triggers.manual({ id: Id.trigger("first") })
     const second = Triggers.manual({ id: Id.trigger("second") })
-    const selected = Workflow.oneOf([first, second]).then(Task.fn<void, string>({
-      id: Id.node("selected"),
-      run: () => Effect.succeed("selected"),
-    }))
+    const selected = Workflow.oneOf([first, second]).then(
+      Task.fn<void, string>({
+        id: Id.node("selected"),
+        run: () => Effect.succeed("selected"),
+      }),
+    )
     const scheduler = createScheduler({ workflows: [selected], observer: SchedulerObservers.noop })
 
     const [result] = await scheduler.runTrigger(second.triggers[0]!.id, undefined)

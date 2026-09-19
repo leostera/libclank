@@ -32,7 +32,7 @@ const summarizeUrl = Triggers.webhook<SummaryRequest>({
   id: Id.trigger("summarize-url"),
   path: "/hooks/summarize-url",
   decode: async (request) => {
-    const body = await request.json() as { url?: unknown }
+    const body = (await request.json()) as { url?: unknown }
     if (typeof body.url !== "string") throw new Error("Expected JSON body with a url string")
     new URL(body.url)
     await mkdir(summaryDirectory, { recursive: true })

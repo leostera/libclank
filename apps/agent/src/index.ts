@@ -17,9 +17,12 @@ export class LibclankAgent extends Agent<Env> {
       return new Response("Not found", { status: 404 })
     }
 
-    const task = await request.json() as AgentTaskRequest<unknown>
+    const task = (await request.json()) as AgentTaskRequest<unknown>
     if (task.version !== 1 || !task.runId || !task.nodeId || typeof task.instructions !== "string") {
-      return Response.json({ ok: false, error: { message: "Invalid AgentTaskRequest", retryable: false } } satisfies AgentTaskResponse, { status: 400 })
+      return Response.json(
+        { ok: false, error: { message: "Invalid AgentTaskRequest", retryable: false } } satisfies AgentTaskResponse,
+        { status: 400 },
+      )
     }
 
     return Response.json(await this.executeTask(task))

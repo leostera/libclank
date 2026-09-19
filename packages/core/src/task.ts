@@ -36,5 +36,10 @@ export const createTaskRegistry = (tasks: readonly Node<unknown, unknown>[]): Ta
 }
 
 function definition<Input, Output>(options: TaskOptions<Input, Output>): NodeDefinition {
-  return { id: options.id, description: options.description ?? options.id, version: options.version ?? "1", cache: options.cache ?? "never" }
+  return {
+    id: options.id,
+    description: options.description ?? options.id,
+    version: options.version ?? "1",
+    cache: options.cache ?? "never",
+  }
 }

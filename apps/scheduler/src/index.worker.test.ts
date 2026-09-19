@@ -14,13 +14,18 @@ describe("WorkflowRun", () => {
     expect(created.status).toBe(202)
     expect(await created.json()).toMatchObject({ runId, status: "scheduled" })
 
-    const run = await eventually(async () => {
-      const response = await SELF.fetch(`https://scheduler.test/runs/${runId}`)
-      return await response.json() as { status: string; output?: unknown }
-    }, (value) => value.status === "completed")
+    const run = await eventually(
+      async () => {
+        const response = await SELF.fetch(`https://scheduler.test/runs/${runId}`)
+        return (await response.json()) as { status: string; output?: unknown }
+      },
+      (value) => value.status === "completed",
+    )
     expect(run.output).toEqual({ mergeRequest: 42 })
 
-    const events = await (await SELF.fetch(`https://scheduler.test/runs/${runId}/events`)).json() as { type: string }[]
+    const events = (await (await SELF.fetch(`https://scheduler.test/runs/${runId}/events`)).json()) as {
+      type: string
+    }[]
     expect(events.map((event) => event.type)).toEqual([
       "trigger.received",
       "workflow.scheduled",

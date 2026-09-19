@@ -7,8 +7,18 @@ interface Env {
 }
 
 type RunStatus = "scheduled" | "running" | "completed" | "failed"
-type RunRecord = { readonly runId: RunId; readonly status: RunStatus; readonly output?: unknown; readonly error?: string }
-type EventRow = { readonly sequence: number; readonly type: string; readonly payload: string; readonly created_at: number }
+type RunRecord = {
+  readonly runId: RunId
+  readonly status: RunStatus
+  readonly output?: unknown
+  readonly error?: string
+}
+type EventRow = {
+  readonly sequence: number
+  readonly type: string
+  readonly payload: string
+  readonly created_at: number
+}
 
 const workflowId = Id.node("review-open-mrs")
 const agentNodeId = Id.node("review-open-mrs/agent")
@@ -38,7 +48,7 @@ export class WorkflowRun implements DurableObject {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url)
     if (request.method === "POST" && url.pathname === "/start") {
-      const { runId, input } = await request.json() as { runId: RunId; input: unknown }
+      const { runId, input } = (await request.json()) as { runId: RunId; input: unknown }
       return this.start(runId, input)
     }
     if (request.method === "GET" && url.pathname === "/events") return Response.json(this.events())
@@ -69,15 +79,22 @@ export class WorkflowRun implements DurableObject {
     }
 
     try {
-      const response = await this.env.AGENT.fetch(new Request("https://agent.internal/task", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(task),
-      }))
+      const response = await this.env.AGENT.fetch(
+        new Request("https://agent.internal/task", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(task),
+        }),
+      )
       if (!response.ok) throw new Error(`Agent endpoint returned ${response.status}`)
-      const result = await response.json() as AgentTaskResponse<unknown>
+      const result = (await response.json()) as AgentTaskResponse<unknown>
       if (!result.ok) throw new Error(result.error.message)
-      this.ctx.storage.sql.exec("UPDATE runs SET status = ?, output = ? WHERE run_id = ?", "completed", JSON.stringify(result.output), runId)
+      this.ctx.storage.sql.exec(
+        "UPDATE runs SET status = ?, output = ? WHERE run_id = ?",
+        "completed",
+        JSON.stringify(result.output),
+        runId,
+      )
       this.append("node.completed", { nodeId: agentNodeId, attempt: 1, output: result.output })
       this.append("workflow.completed", { status: "completed" })
     } catch (error) {
@@ -89,26 +106,45 @@ export class WorkflowRun implements DurableObject {
   }
 
   private run(): RunRecord | undefined {
-    const row = this.ctx.storage.sql.exec<{ run_id: string; status: RunStatus; output: string | null; error: string | null }>("SELECT run_id, status, output, error FROM runs LIMIT 1").toArray()[0]
-    return row && {
-      runId: row.run_id as RunId,
-      status: row.status,
-      ...(row.output === null ? {} : { output: JSON.parse(row.output) }),
-      ...(row.error === null ? {} : { error: row.error }),
-    }
+    const row = this.ctx.storage.sql
+      .exec<{ run_id: string; status: RunStatus; output: string | null; error: string | null }>(
+        "SELECT run_id, status, output, error FROM runs LIMIT 1",
+      )
+      .toArray()[0]
+    return (
+      row && {
+        runId: row.run_id as RunId,
+        status: row.status,
+        ...(row.output === null ? {} : { output: JSON.parse(row.output) }),
+        ...(row.error === null ? {} : { error: row.error }),
+      }
+    )
   }
 
-  private events(): readonly { readonly sequence: number; readonly type: string; readonly payload: unknown; readonly createdAt: number }[] {
-    return this.ctx.storage.sql.exec<EventRow>("SELECT sequence, type, payload, created_at FROM events ORDER BY sequence").toArray().map((event) => ({
-      sequence: event.sequence,
-      type: event.type,
-      payload: JSON.parse(event.payload),
-      createdAt: event.created_at,
-    }))
+  private events(): readonly {
+    readonly sequence: number
+    readonly type: string
+    readonly payload: unknown
+    readonly createdAt: number
+  }[] {
+    return this.ctx.storage.sql
+      .exec<EventRow>("SELECT sequence, type, payload, created_at FROM events ORDER BY sequence")
+      .toArray()
+      .map((event) => ({
+        sequence: event.sequence,
+        type: event.type,
+        payload: JSON.parse(event.payload),
+        createdAt: event.created_at,
+      }))
   }
 
   private append(type: string, payload: unknown): void {
-    this.ctx.storage.sql.exec("INSERT INTO events (type, payload, created_at) VALUES (?, ?, ?)", type, JSON.stringify(payload), Date.now())
+    this.ctx.storage.sql.exec(
+      "INSERT INTO events (type, payload, created_at) VALUES (?, ?, ?)",
+      type,
+      JSON.stringify(payload),
+      Date.now(),
+    )
   }
 }
 
@@ -119,11 +155,15 @@ export default {
       const runId = request.headers.get("idempotency-key") ?? crypto.randomUUID()
       if (!isUuid(runId)) return Response.json({ error: "idempotency-key must be a UUID" }, { status: 400 })
       const stub = env.WORKFLOW_RUN.get(env.WORKFLOW_RUN.idFromName(runId))
-      const payload = request.headers.get("content-type")?.includes("application/json") ? await request.json() : undefined
-      const created = await stub.fetch(new Request("https://run.internal/start", {
-        method: "POST",
-        body: JSON.stringify({ runId, input: payload }),
-      }))
+      const payload = request.headers.get("content-type")?.includes("application/json")
+        ? await request.json()
+        : undefined
+      const created = await stub.fetch(
+        new Request("https://run.internal/start", {
+          method: "POST",
+          body: JSON.stringify({ runId, input: payload }),
+        }),
+      )
       return new Response(created.body, { status: 202, headers: { "content-type": "application/json" } })
     }
     const match = url.pathname.match(/^\/runs\/([^/]+)(\/events)?$/)

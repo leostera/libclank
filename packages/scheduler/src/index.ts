@@ -10,12 +10,48 @@ import { Effect } from "effect"
 import type { EventId, NodeId, RunId, TriggerId, WorkflowRun } from "@libclank/core"
 
 export type ExecutionEvent =
-  | { readonly type: "trigger.received"; readonly eventId: EventId; readonly runId: RunId; readonly triggerId: TriggerId; readonly payload: unknown }
-  | { readonly type: "workflow.scheduled"; readonly eventId: EventId; readonly runId: RunId; readonly workflowId: NodeId }
-  | { readonly type: "node.started"; readonly eventId: EventId; readonly runId: RunId; readonly nodeId: NodeId; readonly attempt: number }
-  | { readonly type: "node.completed"; readonly eventId: EventId; readonly runId: RunId; readonly nodeId: NodeId; readonly output: unknown; readonly durationMs: number }
-  | { readonly type: "node.failed"; readonly eventId: EventId; readonly runId: RunId; readonly nodeId: NodeId; readonly error: unknown; readonly attempt: number }
-  | { readonly type: "workflow.completed"; readonly eventId: EventId; readonly runId: RunId; readonly status: WorkflowRun["status"] }
+  | {
+      readonly type: "trigger.received"
+      readonly eventId: EventId
+      readonly runId: RunId
+      readonly triggerId: TriggerId
+      readonly payload: unknown
+    }
+  | {
+      readonly type: "workflow.scheduled"
+      readonly eventId: EventId
+      readonly runId: RunId
+      readonly workflowId: NodeId
+    }
+  | {
+      readonly type: "node.started"
+      readonly eventId: EventId
+      readonly runId: RunId
+      readonly nodeId: NodeId
+      readonly attempt: number
+    }
+  | {
+      readonly type: "node.completed"
+      readonly eventId: EventId
+      readonly runId: RunId
+      readonly nodeId: NodeId
+      readonly output: unknown
+      readonly durationMs: number
+    }
+  | {
+      readonly type: "node.failed"
+      readonly eventId: EventId
+      readonly runId: RunId
+      readonly nodeId: NodeId
+      readonly error: unknown
+      readonly attempt: number
+    }
+  | {
+      readonly type: "workflow.completed"
+      readonly eventId: EventId
+      readonly runId: RunId
+      readonly status: WorkflowRun["status"]
+    }
 
 export interface ExecutionEventStore {
   append(event: ExecutionEvent): Effect.Effect<void, unknown>

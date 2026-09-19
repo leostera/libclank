@@ -34,7 +34,17 @@ export interface NodeInstanceRecord {
 
 export const NodeInstanceTransitions = {
   canTransition(from: NodeInstanceStatus, to: NodeInstanceStatus): boolean {
-    return ({ pending: ["ready", "cancelled"], ready: ["running", "cancelled"], running: ["completed", "retry_wait", "failed", "cancelled"], retry_wait: ["ready", "cancelled"], completed: [], failed: [], cancelled: [] } as const)[from].includes(to as never)
+    return (
+      {
+        pending: ["ready", "cancelled"],
+        ready: ["running", "cancelled"],
+        running: ["completed", "retry_wait", "failed", "cancelled"],
+        retry_wait: ["ready", "cancelled"],
+        completed: [],
+        failed: [],
+        cancelled: [],
+      } as const
+    )[from].includes(to as never)
   },
   assert(from: NodeInstanceStatus, to: NodeInstanceStatus): void {
     if (!this.canTransition(from, to)) throw new Error(`Invalid node instance transition: ${from} -> ${to}`)

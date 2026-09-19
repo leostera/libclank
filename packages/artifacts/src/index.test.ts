@@ -5,7 +5,9 @@ import { afterEach, describe, expect, it } from "vitest"
 import { createLocalArtifacts } from "@libclank/local"
 
 const roots: string[] = []
-afterEach(async () => { await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))) })
+afterEach(async () => {
+  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })))
+})
 
 const local = async () => {
   const root = await mkdtemp(join(tmpdir(), "libclank-artifacts-"))

@@ -11,5 +11,11 @@ export interface ArtifactBackedOutput {
   readonly artifacts: readonly ArtifactRef[]
 }
 
-export const artifactInput = (artifacts: readonly ArtifactRef[], value?: unknown): ArtifactBackedInput => ({ artifacts, ...(value === undefined ? {} : { value }) })
-export const artifactOutput = (artifacts: readonly ArtifactRef[], value?: unknown): ArtifactBackedOutput => ({ artifacts, ...(value === undefined ? {} : { value }) })
+export const artifactInput = (artifacts: readonly ArtifactRef[], value?: unknown): ArtifactBackedInput => ({
+  artifacts,
+  ...(value === undefined ? {} : { value }),
+})
+export const artifactOutput = (artifacts: readonly ArtifactRef[], value?: unknown): ArtifactBackedOutput => ({
+  artifacts,
+  ...(value === undefined ? {} : { value }),
+})

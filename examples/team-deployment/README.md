@@ -20,12 +20,16 @@ const review = Task.agent<MergeRequest, Review>({
 
 const workflow = Triggers.manual({
   id: Id.trigger("review-open-mrs"),
-}).then(discoverOpenMrs).forEach((mr) => mr.then(review))
+})
+  .then(discoverOpenMrs)
+  .forEach((mr) => mr.then(review))
 
-export default createTriggerApp(createScheduler({
-  workflows: [workflow],
-  observer: SchedulerObservers.noop,
-}))
+export default createTriggerApp(
+  createScheduler({
+    workflows: [workflow],
+    observer: SchedulerObservers.noop,
+  }),
+)
 ```
 
 ## Agent runtime

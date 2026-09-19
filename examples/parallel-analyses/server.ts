@@ -12,30 +12,33 @@ type AnalysisArtifact = { readonly path: string }
 const artifactDirectory = resolve("parallel-analysis-artifacts")
 
 const fetchContentEndpoint = createPiEndpoint<SourceRequest, SourceRequest>({
-  prompt: ({ input }) => `Fetch ${input.url}, extract its substantive contents as Markdown, and write it exactly to ${input.path}.
+  prompt: ({
+    input,
+  }) => `Fetch ${input.url}, extract its substantive contents as Markdown, and write it exactly to ${input.path}.
 Do not summarize or analyze it yet. Use tools to fetch and write the file, then verify the exact path exists.`,
   output: fileOutput,
 })
 
-const analysisEndpoint = (kind: "topic" | "style" | "confidence", instructions: string) => createPiEndpoint<MarkdownArtifact, AnalysisArtifact>({
-  prompt: ({ input }) => {
-    const outputPath = analysisPath(input.path, kind)
-    return `Read the Markdown source at ${input.path}, which came from ${input.url}.
+const analysisEndpoint = (kind: "topic" | "style" | "confidence", instructions: string) =>
+  createPiEndpoint<MarkdownArtifact, AnalysisArtifact>({
+    prompt: ({ input }) => {
+      const outputPath = analysisPath(input.path, kind)
+      return `Read the Markdown source at ${input.path}, which came from ${input.url}.
 ${instructions}
 Write the analysis as Markdown exactly to ${outputPath}. Use tools to read, write, and verify the output file.`
-  },
-  output: async (input) => {
-    const path = analysisPath(input.path, kind)
-    await fileOutput({ path })
-    return { path }
-  },
-})
+    },
+    output: async (input) => {
+      const path = analysisPath(input.path, kind)
+      await fileOutput({ path })
+      return { path }
+    },
+  })
 
 const trigger = Triggers.webhook<SourceRequest>({
   id: Id.trigger("analyze-url"),
   path: "/hooks/analyze-url",
   decode: async (request) => {
-    const body = await request.json() as { url?: unknown }
+    const body = (await request.json()) as { url?: unknown }
     if (typeof body.url !== "string") throw new Error("Expected JSON body with a url string")
     new URL(body.url)
     await mkdir(artifactDirectory, { recursive: true })
@@ -57,25 +60,29 @@ const analyzeTopic = Task.agent<MarkdownArtifact, AnalysisArtifact>({
 
 const analyzeStyle = Task.agent<MarkdownArtifact, AnalysisArtifact>({
   id: Id.node("analyze-writing-style"),
-  endpoint: analysisEndpoint("style", "Analyze the writing style: structure, tone, clarity, rhetorical choices, and intended audience."),
+  endpoint: analysisEndpoint(
+    "style",
+    "Analyze the writing style: structure, tone, clarity, rhetorical choices, and intended audience.",
+  ),
   instructions: "Analyze writing style.",
 })
 
 const analyzeConfidence = Task.agent<MarkdownArtifact, AnalysisArtifact>({
   id: Id.node("analyze-author-confidence"),
-  endpoint: analysisEndpoint("confidence", "Assess how confident a reader should be that the author knows what they are discussing. Cite evidence, uncertainty, and limitations."),
+  endpoint: analysisEndpoint(
+    "confidence",
+    "Assess how confident a reader should be that the author knows what they are discussing. Cite evidence, uncertainty, and limitations.",
+  ),
   instructions: "Analyze author expertise and confidence.",
 })
 
 const openAnalysis = openFile({ id: Id.node("open-analysis") })
 
-const workflow = trigger
-  .then(fetchContent)
-  .fanout({
-    topic: analyzeTopic.tap(openAnalysis),
-    style: analyzeStyle.tap(openAnalysis),
-    confidence: analyzeConfidence.tap(openAnalysis),
-  })
+const workflow = trigger.then(fetchContent).fanout({
+  topic: analyzeTopic.tap(openAnalysis),
+  style: analyzeStyle.tap(openAnalysis),
+  confidence: analyzeConfidence.tap(openAnalysis),
+})
 
 const scheduler = createScheduler({ workflows: [workflow], observer: createConsoleObserver() })
 const app = createTriggerApp(scheduler)

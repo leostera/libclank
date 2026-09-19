@@ -3,7 +3,14 @@ import { join, resolve } from "node:path"
 import { Task } from "@libclank/agent"
 import { createTriggerApp } from "@libclank/cloudflare"
 import { Id, Triggers, createScheduler } from "@libclank/core"
-import { createConsoleObserver, createPiEndpoint, fileOutput, jsonFileOutput, logListeningTriggers, openFile } from "@libclank/local"
+import {
+  createConsoleObserver,
+  createPiEndpoint,
+  fileOutput,
+  jsonFileOutput,
+  logListeningTriggers,
+  openFile,
+} from "@libclank/local"
 
 type Link = { readonly url: string; readonly title: string; readonly reason: string }
 type LinkArtifact = { readonly url: string; readonly path: string }
@@ -39,7 +46,7 @@ const trigger = Triggers.webhook<UrlRequest>({
   id: Id.trigger("digest-links"),
   path: "/hooks/digest-links",
   decode: async (request) => {
-    const body = await request.json() as { url?: unknown }
+    const body = (await request.json()) as { url?: unknown }
     if (typeof body.url !== "string") throw new Error("Expected JSON body with a url string")
     new URL(body.url)
     await mkdir(artifactDirectory, { recursive: true })
@@ -87,7 +94,8 @@ function artifactPath(kind: string, extension = "json"): string {
 }
 
 function parseLinks(value: unknown): readonly Link[] {
-  if (!Array.isArray(value) || value.length !== 3 || !value.every(isLink)) throw new Error("Expected exactly three link objects")
+  if (!Array.isArray(value) || value.length !== 3 || !value.every(isLink))
+    throw new Error("Expected exactly three link objects")
   return value
 }
 
@@ -97,11 +105,23 @@ function parseLinkSummary(value: unknown): LinkSummary {
 }
 
 function isLink(value: unknown): value is Link {
-  return isRecord(value) && typeof value.url === "string" && typeof value.title === "string" && typeof value.reason === "string"
+  return (
+    isRecord(value) &&
+    typeof value.url === "string" &&
+    typeof value.title === "string" &&
+    typeof value.reason === "string"
+  )
 }
 
 function isLinkSummary(value: unknown): value is LinkSummary {
-  return isRecord(value) && typeof value.url === "string" && typeof value.title === "string" && typeof value.summary === "string"
+  return (
+    isRecord(value) &&
+    typeof value.url === "string" &&
+    typeof value.title === "string" &&
+    typeof value.summary === "string"
+  )
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null }
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}

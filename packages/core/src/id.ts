@@ -44,12 +44,20 @@ function definition(kind: DefinitionKind, value: string): DefinitionId {
 
 function parseDefinition(value: string): ParsedDefinitionId {
   let url: URL
-  try { url = new URL(value) } catch { throw new Error(`Invalid LibClank definition ID: ${value}`) }
-  if (url.protocol !== "libclank:" || (!isDefinitionKind(url.hostname)) || url.search || url.hash) {
+  try {
+    url = new URL(value)
+  } catch {
+    throw new Error(`Invalid LibClank definition ID: ${value}`)
+  }
+  if (url.protocol !== "libclank:" || !isDefinitionKind(url.hostname) || url.search || url.hash) {
     throw new Error(`Invalid LibClank definition ID: ${value}`)
   }
   let name: string
-  try { name = normalizeName(url.pathname.split("/").filter(Boolean).map(decodeURIComponent).join("/")) } catch { throw new Error(`Invalid LibClank definition ID: ${value}`) }
+  try {
+    name = normalizeName(url.pathname.split("/").filter(Boolean).map(decodeURIComponent).join("/"))
+  } catch {
+    throw new Error(`Invalid LibClank definition ID: ${value}`)
+  }
   const kind = url.hostname
   return { kind, name, uri: `libclank://${kind}/${name.split("/").map(encodeURIComponent).join("/")}` as DefinitionId }
 }

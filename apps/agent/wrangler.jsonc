@@ -3,7 +3,7 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-01-01",
   "durable_objects": {
-    "bindings": [{ "name": "LIBCLANK_AGENT", "class_name": "LibclankAgent" }]
+    "bindings": [{ "name": "LIBCLANK_AGENT", "class_name": "LibclankAgent" }],
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["LibclankAgent"] }]
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["LibclankAgent"] }],
 }

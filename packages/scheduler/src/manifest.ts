@@ -27,15 +27,18 @@ export interface PersistedTriggerDefinition {
 /** Builds a stable, hashable manifest from source-defined task and trigger metadata. */
 export const createWorkflowManifest = async (source: WorkflowManifestSource): Promise<WorkflowManifest> => {
   const tasks = [...source.tasks].sort((left, right) => left.id.localeCompare(right.id))
-  const triggers = (source.triggers ?? []).map(({ id, kind, path, schedule }) => ({
-    id,
-    kind,
-    ...(path === undefined ? {} : { path }),
-    ...(schedule === undefined ? {} : { schedule }),
-  })).sort((left, right) => left.id.localeCompare(right.id))
+  const triggers = (source.triggers ?? [])
+    .map(({ id, kind, path, schedule }) => ({
+      id,
+      kind,
+      ...(path === undefined ? {} : { path }),
+      ...(schedule === undefined ? {} : { schedule }),
+    }))
+    .sort((left, right) => left.id.localeCompare(right.id))
   const canonical = JSON.stringify({ schemaVersion: 1, workflowId: source.workflowId, tasks, triggers })
   const bytes = new TextEncoder().encode(canonical)
   const digest = await crypto.subtle.digest("SHA-256", bytes as unknown as BufferSource)
-  const definitionHash = `sha256:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("")}` as WorkflowDefinitionHash
+  const definitionHash =
+    `sha256:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("")}` as WorkflowDefinitionHash
   return { schemaVersion: 1, workflowId: source.workflowId, definitionHash, tasks, triggers }
 }
