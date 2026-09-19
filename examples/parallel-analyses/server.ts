@@ -100,7 +100,19 @@ const scheduler = await createDurableScheduler({ workflows: [workflow], database
 const app = createTriggerApp(scheduler)
 const operations = {
   ...createLocalSchedulerOperations(database),
-  trigger: (triggerId: string, input: unknown) => scheduler.runTrigger(Id.trigger(triggerId), input),
+  trigger: async (triggerId: string, input: unknown) => {
+    const trigger = scheduler.triggers.find((candidate) => candidate.id === Id.trigger(triggerId))
+    const decoded = trigger?.decode
+      ? await trigger.decode(
+          new Request("http://localhost", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(input),
+          }),
+        )
+      : input
+    return scheduler.runTrigger(Id.trigger(triggerId), decoded)
+  },
   createRun: async ({
     workflowDefinitionHash,
     triggerId,
