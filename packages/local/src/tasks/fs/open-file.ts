@@ -10,14 +10,16 @@ export interface LocalFile {
  * A local-only effect task that opens a file in the operating system's
  * preferred application (`open`, `start`, or `xdg-open`).
  */
-export const openFile = (options: { id: NodeId }) =>
+export const openFile = (options: { id: NodeId; required?: boolean }) =>
   Task.effect<LocalFile>({
     id: options.id,
-    run: (file) =>
-      Effect.tryPromise({
+    run: (file) => {
+      const opening = Effect.tryPromise({
         try: () => runOpenCommand(file.path),
         catch: (error) => (error instanceof Error ? error : new Error(String(error))),
-      }),
+      })
+      return options.required === false ? Effect.catchCause(opening, () => Effect.void) : opening
+    },
   })
 
 function runOpenCommand(path: string): Promise<void> {

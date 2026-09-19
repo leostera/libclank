@@ -87,7 +87,7 @@ const analyzeConfidence = Task.agent<MarkdownArtifact, AnalysisArtifact>({
   instructions: "Analyze author expertise and confidence.",
 })
 
-const openAnalysis = openFile({ id: Id.node("open-analysis") })
+const openAnalysis = openFile({ id: Id.node("open-analysis"), required: false })
 
 const workflow = trigger.then(fetchContent).fanout({
   topic: analyzeTopic.tap(openAnalysis),
