@@ -2,6 +2,7 @@ export { createDashboardApi } from "./api.js"
 export { createDashboardAssetHandler } from "./server.js"
 export { Dashboard, type DashboardProps } from "./Dashboard.js"
 export { RunGraph, type RunGraphProps } from "./RunGraph.js"
+export { ClankerDashboard, type ClankerDashboardProps } from "./ClankerDashboard.js"
 
 /** HTML shell for the bundled React dashboard client. */
 export const reactDashboardHtml = (scriptPath = "/ui.js"): string =>

@@ -4,16 +4,20 @@
   "type": "module",
   "exports": {
     "./core": {
-      "types": "./dist/core/index.d.ts",
-      "default": "./dist/core.js"
+      "types": "./packages/core/dist/index.d.ts",
+      "default": "./packages/core/dist/index.js"
     },
     "./agent": {
-      "types": "./dist/agent/index.d.ts",
-      "default": "./dist/agent.js"
+      "types": "./packages/agent/dist/index.d.ts",
+      "default": "./packages/agent/dist/index.js"
     },
     "./cloudflare": {
-      "types": "./dist/cloudflare/index.d.ts",
-      "default": "./dist/cloudflare.js"
+      "types": "./packages/cloudflare/dist/index.d.ts",
+      "default": "./packages/cloudflare/dist/index.js"
+    },
+    "./ui": {
+      "types": "./packages/ui/dist/index.d.ts",
+      "default": "./packages/ui/dist/index.js"
     }
   },
   "packageManager": "bun@1.3.11",

@@ -5,7 +5,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json && vite build --outDir dist/client",
+    "build": "tsc -p tsconfig.json && cp src/clanker-dashboard.css dist/clanker-dashboard.css && vite build --outDir dist/client",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "dev": "vite",
     "preview": "vite preview"
@@ -17,7 +17,8 @@
     "effect": "4.0.0-rc.116",
     "hono": "^4.13.8",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "react-router": "^8.4.0"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
