@@ -11,9 +11,38 @@ export class NodeExecutionError extends Error {
   }
 }
 
+export type Retryability = "retryable" | "permanent" | "unknown"
+
+/** A typed task failure that instructs durable schedulers whether another attempt is useful. */
+export class ExecutionFailure extends Error {
+  constructor(
+    message: string,
+    readonly retryability: Exclude<Retryability, "unknown">,
+    options?: ErrorOptions,
+  ) {
+    super(message, options)
+    this.name = "ExecutionFailure"
+  }
+}
+
+export class RetryableExecutionError extends ExecutionFailure {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, "retryable", options)
+    this.name = "RetryableExecutionError"
+  }
+}
+
+export class PermanentExecutionError extends ExecutionFailure {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, "permanent", options)
+    this.name = "PermanentExecutionError"
+  }
+}
+
 export interface ExecutionError {
   readonly name: string
   readonly message: string
+  readonly retryability?: Exclude<Retryability, "unknown">
   readonly nodeId?: NodeId
   readonly stack?: string
   readonly cause?: ExecutionError
@@ -30,12 +59,29 @@ export function findNodeExecutionError(error: unknown): NodeExecutionError | und
   return undefined
 }
 
+/** Returns the nearest explicit classification in an Error cause chain. */
+export function retryabilityOf(error: unknown): Retryability {
+  let current = error
+  const seen = new Set<unknown>()
+  while (current instanceof Error && !seen.has(current)) {
+    if (current instanceof ExecutionFailure) return current.retryability
+    seen.add(current)
+    current = "cause" in current ? current.cause : undefined
+  }
+  return "unknown"
+}
+
 export function serializeExecutionError(error: unknown, seen = new Set<unknown>()): ExecutionError {
   if (error instanceof Error) {
     const cause = "cause" in error ? error.cause : undefined
     const details: ExecutionError = {
       name: error.name,
       message: error.message,
+      ...(retryabilityOf(error) === "retryable"
+        ? { retryability: "retryable" as const }
+        : retryabilityOf(error) === "permanent"
+          ? { retryability: "permanent" as const }
+          : {}),
       ...(error instanceof NodeExecutionError ? { nodeId: error.nodeId } : {}),
       ...(error.stack === undefined ? {} : { stack: error.stack }),
     }

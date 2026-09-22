@@ -1,5 +1,6 @@
 import { Effect } from "effect"
 import {
+  ExecutionFailure,
   Task as CoreTask,
   type ExecutionContext,
   type NodeDefinition,
@@ -27,6 +28,17 @@ export type AgentTaskResponse<Output = unknown> =
   | { readonly ok: true; readonly output: Output }
   | { readonly ok: false; readonly error: { readonly message: string; readonly retryable: boolean } }
 
+/** A protocol failure returned by a team-owned AgentRuntime. */
+export class AgentTaskError extends ExecutionFailure {
+  constructor(
+    message: string,
+    readonly retryable: boolean,
+  ) {
+    super(message, retryable ? "retryable" : "permanent")
+    this.name = "AgentTaskError"
+  }
+}
+
 /** Server-side implementation owned and deployed by the application team. */
 export interface AgentRuntime {
   execute<Input, Output>(request: AgentTaskRequest<Input>): NodeRun<AgentTaskResponse<Output>>
@@ -50,12 +62,14 @@ export const Task = {
     version?: string
     /** Agents cache immutable outputs by input unless explicitly disabled. */
     cache?: NodeDefinition["cache"]
+    retry?: NodeDefinition["retry"]
   }): TaskNode<Input, Output> {
     return CoreTask.fn({
       id: options.id,
       description: options.description ?? options.instructions,
       cache: options.cache ?? "by-input",
       ...(options.version === undefined ? {} : { version: options.version }),
+      ...(options.retry === undefined ? {} : { retry: options.retry }),
       run: (input, context?: ExecutionContext) => {
         const runId = context?.runId
         if (!runId) return Effect.die(new Error(`Agent task ${options.id} requires a workflow run ID`))
@@ -63,7 +77,7 @@ export const Task = {
           version: AGENT_TASK_PROTOCOL_VERSION,
           runId,
           nodeId: options.id,
-          attempt: 1,
+          attempt: context?.attempt ?? 1,
           input,
           instructions: options.instructions,
           ...(options.model === undefined ? {} : { model: options.model }),

@@ -1,42 +1,75 @@
 # Testing behavior
 
-## Graph semantics
+This document distinguishes behavior exercised today from planned durable-runtime guarantees. The authoritative roadmap is [RFD0002](./rfds/RFD0002-durable-runtime-correctness.md) and its [implementation checklist](../.agents/plans/RFD0002-implementation-checklist.md).
 
-- A trigger starts only workflows that depend on it.
-- `oneOf` accepts whichever trigger fired.
-- `all` waits for every input and fails when one input fails.
+## Current test layers
+
+- `packages/core`: fast node-composition and eager scheduler unit tests.
+- `packages/scheduler`: manifest, topology, dynamic materialization, retry, and event-store unit tests.
+- `packages/local`: real local SQLite persistence and restart tests.
+- `packages/cloudflare`: Durable Object-compatible prototype tests.
+- `apps/scheduler`: `@cloudflare/vitest-pool-workers` Worker-emulator tests with Durable Objects, SQLite, and service bindings.
+- `tests/e2e`: real local SQLite/Hono integration tests using deterministic task doubles.
+
+External model, MCP, GitLab, arXiv, and filesystem-viewer calls must not be used in deterministic tests.
+
+## Behavior exercised today
+
+### Eager core graph execution
+
+- A trigger selects workflows that depend on it.
+- `oneOf` selects the trigger that fired.
 - `then` passes one typed output to the next node.
-- `map` transforms one completed output into another shape.
-- `mapEach` transforms every item in a completed collection.
-- `forEach` expands a collection into independently executable branches.
-- `fanout` runs named branches from the same value and returns named outputs.
-- A failed node prevents downstream nodes from running.
+- `map` transforms one completed output.
+- `mapEach` and `fanout` run their eager Effect branches.
+- A failed eager node prevents its downstream eager execution.
 
-## Scheduler semantics
+### Local durable scheduler foundation
 
-- Trigger receipt creates a run with an opaque `RunId`.
-- Scheduling and node lifecycle events are emitted in order.
-- Results and failures are persisted.
-- Best-effort workflows allow independent branches to finish.
-- Total workflows fail when required work does not complete.
-- Retry policies create distinct attempts and preserve prior failures.
-- Timeouts and cancellation produce terminal events.
-- Duplicate trigger delivery is idempotent.
+- A trigger creates a persisted run with an opaque `RunId`.
+- Static node instances, inputs, outputs, failures, and lifecycle events persist in SQLite.
+- Restarting a completed local run does not re-execute completed node instances.
+- Leases and retry-wait state exist in the local database.
+- Durable execution applies each task's declared maximum attempts and static retry backoff.
+- Invalid persisted inputs/outputs and permanent AgentRuntime responses fail without retrying; other unclassified failures remain retryable while attempts remain.
+- Cacheable tasks derive and persist an execution key from the validated input, artifacts, workflow definition, and task definition; a matching completed local result is reused.
+- Dynamic `mapEach` item instances have a persisted execution foundation.
+- Input and output schemas are validated at the durable execution boundary when supplied.
 
-## Cloudflare runtime semantics
+### Cloudflare prototype
 
-- Worker routes dispatch to the correct run Durable Object.
-- A run DO persists graph state and events in SQLite.
-- Alarms resume queued work after the request ends.
-- Concurrent requests to one run do not corrupt state.
-- Different run DOs can execute concurrently.
-- Scheduler-to-AgentRuntime service bindings carry typed task requests.
-- Agent events and failures are persisted with the workflow trace.
+- A scheduler Worker can route a request to a per-run Durable Object.
+- The example Scheduler-to-AgentRuntime path uses a service binding.
+- The example Durable Object persists a simple run trace in SQLite.
 
-## Test layers
+## Planned guarantees — do not rely on these yet
 
-- `packages/core`: fast graph/scheduler unit tests.
-- `packages/scheduler`: event-store and policy tests.
-- `packages/cloudflare`: Workers integration tests.
-- `apps/*`: `@cloudflare/vitest-pool-workers` emulator tests with DOs, SQLite, alarms, and service bindings.
-- External model, MCP, GitLab, and arXiv calls are never used in deterministic tests.
+The following are RFD0002 work items, not current end-to-end guarantees:
+
+- idempotent duplicate trigger delivery;
+- asynchronous durable trigger submission that returns before workflow completion;
+- richer external-task failure classifications beyond retryable, permanent, and unknown;
+- cache-safe Agent executor identity, cached `undefined` output handling, and cache-hit events;
+- monotonic per-run event sequencing;
+- transactional claim/completion operations and stale-claim rejection;
+- explicit graph-manifest semantics independent of generated ID suffixes;
+- durable bounded `forEach` and fan-out execution;
+- equivalent local SQLite and Cloudflare Durable Object scheduler lifecycles;
+- lifecycle commands, timeouts, cancellation, and pause/resume;
+- Agent protocol authentication, runtime schemas, and execution-token deduplication.
+
+## Commands
+
+```bash
+bun install --frozen-lockfile
+bun run format:check
+bun run typecheck
+bun run build
+bun run test:unit
+bun run test:e2e
+bun run test:workers
+# Equivalent full suite:
+bun run test
+```
+
+The Worker test command is separate because it uses its own Vitest configuration and the Cloudflare Workers emulator.

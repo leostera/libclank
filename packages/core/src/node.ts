@@ -6,6 +6,10 @@ import { notify, type SchedulerObserver } from "./observer.js"
 export interface ExecutionContext {
   readonly triggerValues: ReadonlyMap<TriggerId, unknown>
   readonly runId?: import("./id.js").RunId
+  /** Persisted node-instance identity; unlike nodeId it is unique per workflow run. */
+  readonly nodeInstanceId?: string
+  /** One-based durable execution attempt. Undefined for eager execution. */
+  readonly attempt?: number
   readonly nodeId?: NodeId
   readonly observer?: SchedulerObserver
 }

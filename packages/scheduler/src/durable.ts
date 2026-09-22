@@ -1,9 +1,18 @@
 import { Effect, Schema } from "effect"
-import { Id, serializeExecutionError, type NodeId, type RunId, type SchedulerObserver } from "@libclank/core"
+import {
+  Id,
+  PermanentExecutionError,
+  retryabilityOf,
+  serializeExecutionError,
+  type NodeId,
+  type RunId,
+  type SchedulerObserver,
+} from "@libclank/core"
 import type { SchedulerDatabase } from "./database.js"
 import type { NodeInstanceRecord } from "./run-state.js"
 import type { TaskRegistry } from "@libclank/core"
 import { materializeDynamicSteps } from "./dynamic.js"
+import { createExecutionKey } from "./execution-key.js"
 
 export interface RetryPolicy {
   readonly maxAttempts: number
@@ -46,7 +55,8 @@ export class DurableTaskScheduler {
     return completed
   }
 
-  private async execute(node: NodeInstanceRecord): Promise<void> {
+  private async execute(initialNode: NodeInstanceRecord): Promise<void> {
+    let node = initialNode
     const task = this.options.tasks.get(node.nodeId)
     if (!task) {
       await this.options.database.putNode({
@@ -83,30 +93,57 @@ export class DurableTaskScheduler {
       await this.options.database.promoteReady?.(node.runId)
       return
     }
-    if (node.executionKey) {
-      const cached = await this.options.database.cached?.(node.executionKey)
-      if (cached) {
-        const { leaseExpiresAt: _lease, ...reused } = node
-        await this.options.database.putNode({
-          ...reused,
-          status: "completed",
-          ...(cached.output === undefined ? {} : { output: cached.output }),
-          ...(cached.outputArtifacts === undefined ? {} : { outputArtifacts: cached.outputArtifacts }),
-        })
-        return
-      }
-    }
     try {
-      const input = task.inputSchema ? await Schema.decodeUnknownPromise(task.inputSchema)(node.input) : node.input
+      let input: unknown
+      try {
+        input = task.inputSchema ? await Schema.decodeUnknownPromise(task.inputSchema)(node.input) : node.input
+      } catch (error) {
+        throw new PermanentExecutionError(`Task ${node.nodeId} rejected its persisted input`, { cause: error })
+      }
+      if (task.definition.cache === "by-input" && node.executionKey === undefined) {
+        const run = await this.options.database.getRun(node.runId)
+        if (!run) throw new PermanentExecutionError(`Run ${node.runId} is not registered`)
+        node = {
+          ...node,
+          executionKey: await createExecutionKey({
+            workflowDefinitionHash: run.workflowDefinitionHash,
+            task: task.definition,
+            input,
+            inputArtifacts: node.inputArtifacts.map((artifact) => artifact.digest),
+          }),
+        }
+        await this.options.database.putNode(node)
+      }
+      if (node.executionKey) {
+        const cached = await this.options.database.cached?.(node.executionKey)
+        if (cached && cached.id !== node.id) {
+          const { leaseExpiresAt: _lease, ...reused } = node
+          await this.options.database.putNode({
+            ...reused,
+            status: "completed",
+            ...(cached.output === undefined ? {} : { output: cached.output }),
+            ...(cached.outputArtifacts === undefined ? {} : { outputArtifacts: cached.outputArtifacts }),
+          })
+          await this.options.database.promoteReady?.(node.runId)
+          return
+        }
+      }
       const output = await Effect.runPromise(
         task.execute(input, {
           runId: node.runId,
+          nodeInstanceId: node.id,
           nodeId: node.nodeId,
+          attempt: node.attempt,
           triggerValues: this.options.triggerValues ?? new Map(),
           ...(this.options.observer === undefined ? {} : { observer: this.options.observer }),
         }) as Effect.Effect<unknown, unknown, never>,
       )
-      const validatedOutput = task.outputSchema ? await Schema.decodeUnknownPromise(task.outputSchema)(output) : output
+      let validatedOutput: unknown
+      try {
+        validatedOutput = task.outputSchema ? await Schema.decodeUnknownPromise(task.outputSchema)(output) : output
+      } catch (error) {
+        throw new PermanentExecutionError(`Task ${node.nodeId} produced an invalid output`, { cause: error })
+      }
       const { leaseExpiresAt: _lease, error: _error, nextAttemptAt: _next, ...completed } = node
       await this.options.database.putNode({ ...completed, status: "completed", output: validatedOutput })
       await this.options.database.appendEvent?.({
@@ -119,8 +156,8 @@ export class DurableTaskScheduler {
       })
       await this.options.database.promoteReady?.(node.runId)
     } catch (error) {
-      const retry = this.options.retry ?? { maxAttempts: 3, backoffMs: (attempt: number) => 1000 * 2 ** (attempt - 1) }
-      const next = node.attempt < retry.maxAttempts
+      const retry = retryPolicy(task.definition.retry, this.options.retry)
+      const next = retryabilityOf(error) !== "permanent" && node.attempt < retry.maxAttempts
       const { leaseExpiresAt: _lease, output: _output, outputArtifacts: _outputArtifacts, ...failed } = node
       await this.options.database.putNode({
         ...failed,
@@ -137,6 +174,17 @@ export class DurableTaskScheduler {
         error: serializeExecutionError(error),
       })
     }
+  }
+}
+
+function retryPolicy(
+  task: { readonly maxAttempts: number; readonly backoffMs: number },
+  cap: RetryPolicy | undefined,
+): RetryPolicy {
+  if (!cap) return { maxAttempts: task.maxAttempts, backoffMs: () => task.backoffMs }
+  return {
+    maxAttempts: Math.min(task.maxAttempts, cap.maxAttempts),
+    backoffMs: (attempt) => Math.min(task.backoffMs, cap.backoffMs(attempt)),
   }
 }
 

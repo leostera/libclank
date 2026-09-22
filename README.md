@@ -27,8 +27,10 @@ Start with the [LibClank Manual](manual/README.md):
 
 ## Try an example
 
+LibClank uses Bun 1.3.11 (declared in `package.json` and locked by `bun.lock`).
+
 ```bash
-bun install
+bun install --frozen-lockfile
 bun run example:parallel-analyses
 ```
 
@@ -39,9 +41,17 @@ The parallel-analysis example uses local SQLite, Pi-backed agent tasks, a run gr
 ## Repository checks
 
 ```bash
-bun run build
+bun run format:check
 bun run typecheck
+bun run build
 bun run test
+```
+
+## Deploy the example applications
+
+```bash
+bun run --filter @libclank/app-agent exec wrangler deploy
+bun run --filter @libclank/app-scheduler exec wrangler deploy
 ```
 
 ## Contributor documentation

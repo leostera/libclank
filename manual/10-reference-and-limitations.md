@@ -79,6 +79,7 @@ Task.agent({
   description?,
   version?,
   cache?,
+  retry?,
 })
 ```
 
@@ -241,7 +242,7 @@ The dashboard renders the manifest graph, statuses, attempts, and logs. It does 
 
 ### Retry policy is still being consolidated
 
-Task definitions carry retry metadata, and the durable scheduler has retry/recovery behavior. Verify the effective retry timing and attempt behavior your application depends on; task-level policy enforcement, execution-key caching, and error classification are ongoing work.
+Task definitions carry retry metadata, and durable execution applies a task's maximum attempts and static backoff. Cacheable durable tasks also reuse matching completed local results. Verify retry timing and cache scope for your application: cache executor identity, cache-hit observability, transactional cache races, and hosted-runtime parity are still evolving.
 
 ### At-least-once external effects
 

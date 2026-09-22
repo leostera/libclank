@@ -6,6 +6,7 @@
       "name": "libclank",
       "dependencies": {
         "@libclank/agent": "workspace:*",
+        "@libclank/artifacts": "workspace:*",
         "@libclank/cloudflare": "workspace:*",
         "@libclank/core": "workspace:*",
         "@libclank/local": "workspace:*",

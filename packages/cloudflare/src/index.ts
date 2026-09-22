@@ -2,7 +2,7 @@ export * from "./durable-scheduler.js"
 
 import { Hono } from "hono"
 import { Effect } from "effect"
-import type { AgentEndpoint, AgentTaskRequest, AgentTaskResponse } from "@libclank/agent"
+import { AgentTaskError, type AgentEndpoint, type AgentTaskRequest, type AgentTaskResponse } from "@libclank/agent"
 import type { Scheduler } from "@libclank/core"
 
 export interface CloudflareEndpointTarget {
@@ -12,18 +12,21 @@ export interface CloudflareEndpointTarget {
 /** Connects Task.agent to a team-owned AgentRuntime deployed as an Agents SDK DO or Worker. */
 export const createAgentEndpoint = (target: CloudflareEndpointTarget, path = "/task"): AgentEndpoint => ({
   run: <Input, Output>(request: AgentTaskRequest<Input>) =>
-    Effect.tryPromise(async () => {
-      const response = await target.fetch(
-        new Request(`https://agent.internal${path}`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(request),
-        }),
-      )
-      if (!response.ok) throw new Error(`Agent endpoint returned ${response.status}`)
-      const result = (await response.json()) as AgentTaskResponse<Output>
-      if (!result.ok) throw new Error(result.error.message)
-      return result.output
+    Effect.tryPromise({
+      try: async () => {
+        const response = await target.fetch(
+          new Request(`https://agent.internal${path}`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(request),
+          }),
+        )
+        if (!response.ok) throw new Error(`Agent endpoint returned ${response.status}`)
+        const result = (await response.json()) as AgentTaskResponse<Output>
+        if (!result.ok) throw new AgentTaskError(result.error.message, result.error.retryable)
+        return result.output
+      },
+      catch: (error) => (error instanceof Error ? error : new Error(String(error))),
     }),
 })
 
