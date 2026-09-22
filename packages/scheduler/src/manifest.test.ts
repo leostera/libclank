@@ -21,7 +21,7 @@ describe("workflow manifests and execution keys", () => {
     expect(first.schemaVersion).toBe(1)
   })
 
-  it("changes the execution key when input or task version changes", async () => {
+  it("changes the execution key when input, task version, or executor identity changes", async () => {
     const manifest = await createWorkflowManifest({ workflowId: Id.workflow("demo"), tasks: [task] })
     const first = await createExecutionKey({
       workflowDefinitionHash: manifest.definitionHash,
@@ -41,7 +41,15 @@ describe("workflow manifests and execution keys", () => {
       input: { value: 1 },
       inputArtifacts: [],
     })
+    const differentExecutor = await createExecutionKey({
+      workflowDefinitionHash: manifest.definitionHash,
+      task,
+      input: { value: 1 },
+      inputArtifacts: [],
+      executor: { model: "model-v2" },
+    })
     expect(first).not.toBe(differentInput)
     expect(first).not.toBe(differentVersion)
+    expect(first).not.toBe(differentExecutor)
   })
 })

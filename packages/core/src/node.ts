@@ -31,6 +31,8 @@ export interface NodeDefinition {
   readonly description: string
   readonly version: string
   readonly cache: "never" | "by-input"
+  /** Stable executor identity included in cache keys for cacheable tasks. */
+  readonly executor?: unknown
   readonly dependencies: readonly NodeId[]
   readonly retry: { readonly maxAttempts: number; readonly backoffMs: number }
   readonly kind?: "static" | "fanout-item" | "fanout"

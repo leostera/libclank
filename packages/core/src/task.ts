@@ -9,6 +9,8 @@ export type TaskOptions<Input, Output> = {
   readonly version?: string
   /** Only use `by-input` for work with reusable immutable outputs. */
   readonly cache?: NodeDefinition["cache"]
+  /** Stable implementation identity included in cache keys for cacheable work. */
+  readonly executor?: NodeDefinition["executor"]
   readonly retry?: NodeDefinition["retry"]
   readonly input?: RuntimeSchema<Input>
   readonly output?: RuntimeSchema<Output>
@@ -54,6 +56,7 @@ function definition<Input, Output>(options: TaskOptions<Input, Output>): NodeDef
     description: options.description ?? options.id,
     version: options.version ?? "1",
     cache: options.cache ?? "never",
+    ...(options.executor === undefined ? {} : { executor: options.executor }),
     dependencies: [],
     retry: options.retry ?? { maxAttempts: 1, backoffMs: 1000 },
   }

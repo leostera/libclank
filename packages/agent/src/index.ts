@@ -46,6 +46,8 @@ export interface AgentRuntime {
 
 /** Client-side handle used by the scheduler to reach an AgentRuntime. */
 export interface AgentEndpoint {
+  /** Stable deployment/transport identity included in cacheable Agent task keys. */
+  readonly identity?: unknown
   run<Input, Output>(request: AgentTaskRequest<Input>): NodeRun<Output>
 }
 
@@ -63,6 +65,8 @@ export const Task = {
     /** Agents cache immutable outputs by input unless explicitly disabled. */
     cache?: NodeDefinition["cache"]
     retry?: NodeDefinition["retry"]
+    /** Adds application-owned model, tool, or tenant identity to cache keys. */
+    executor?: NodeDefinition["executor"]
   }): TaskNode<Input, Output> {
     return CoreTask.fn({
       id: options.id,
@@ -70,6 +74,14 @@ export const Task = {
       cache: options.cache ?? "by-input",
       ...(options.version === undefined ? {} : { version: options.version }),
       ...(options.retry === undefined ? {} : { retry: options.retry }),
+      executor: {
+        protocolVersion: AGENT_TASK_PROTOCOL_VERSION,
+        endpoint: options.endpoint.identity ?? null,
+        instructions: options.instructions,
+        model: options.model ?? null,
+        skills: [...(options.skills ?? [])].sort(),
+        ...(options.executor === undefined ? {} : { application: options.executor }),
+      },
       run: (input, context?: ExecutionContext) => {
         const runId = context?.runId
         if (!runId) return Effect.die(new Error(`Agent task ${options.id} requires a workflow run ID`))

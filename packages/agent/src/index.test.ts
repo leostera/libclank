@@ -11,6 +11,7 @@ describe("Task.agent", () => {
       instructions: "Summarize the input.",
       retry: { maxAttempts: 2, backoffMs: 25 },
       endpoint: {
+        identity: { deployment: "test-agent-v1" },
         run: <Input, Output>(value: AgentTaskRequest<Input>) =>
           Effect.sync(() => {
             request = value as AgentTaskRequest<number>
@@ -32,5 +33,12 @@ describe("Task.agent", () => {
     expect(output).toBe("ok")
     expect(request).toMatchObject({ attempt: 2, input: 7 })
     expect(task.definition.retry).toEqual({ maxAttempts: 2, backoffMs: 25 })
+    expect(task.definition.executor).toEqual({
+      protocolVersion: 1,
+      endpoint: { deployment: "test-agent-v1" },
+      instructions: "Summarize the input.",
+      model: null,
+      skills: [],
+    })
   })
 })

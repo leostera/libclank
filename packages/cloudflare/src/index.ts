@@ -10,7 +10,12 @@ export interface CloudflareEndpointTarget {
 }
 
 /** Connects Task.agent to a team-owned AgentRuntime deployed as an Agents SDK DO or Worker. */
-export const createAgentEndpoint = (target: CloudflareEndpointTarget, path = "/task"): AgentEndpoint => ({
+export const createAgentEndpoint = (
+  target: CloudflareEndpointTarget,
+  path = "/task",
+  identity: unknown = { transport: "cloudflare-service-binding", path },
+): AgentEndpoint => ({
+  identity,
   run: <Input, Output>(request: AgentTaskRequest<Input>) =>
     Effect.tryPromise({
       try: async () => {

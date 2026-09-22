@@ -110,6 +110,7 @@ export class DurableTaskScheduler {
             task: task.definition,
             input,
             inputArtifacts: node.inputArtifacts.map((artifact) => artifact.digest),
+            executor: task.definition.executor,
           }),
         }
         await this.options.database.putNode(node)

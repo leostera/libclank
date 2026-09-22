@@ -124,7 +124,7 @@ Affected areas:
 - [ ] Add documented scheduler-level safety caps without replacing task policy silently.
 - [x] Treat schema failures and missing implementations as permanent.
 - [x] Compute execution keys after input validation and aggregation.
-- [ ] Include definition, version, input, artifacts, and executor identity in keys.
+- [x] Include definition, version, input, artifacts, and executor identity in keys.
 - [x] Persist execution keys on node instances.
 - [ ] Represent cached `undefined` distinctly from no cached output.
 - [ ] Emit `node.cache_hit` and normal completion events on reuse.
@@ -348,3 +348,12 @@ The following RFD decisions must be resolved before their dependent milestone is
 - Executor identity, Agent cache safety, cached `undefined` output, cache-hit events, and transactional cache races remain incomplete and are deliberately unchecked in this plan.
 - Validation passed: `bun run build` and `bun run test:unit`.
 - Next: add explicit executor identity to cache keys, beginning with `Task.agent` model/instructions/skills, without claiming cross-endpoint cache safety yet.
+
+### 2026-09-22 — Cache executor-identity slice landed
+
+- Added optional stable executor identity to source task definitions and cache keys. `Task.agent` automatically includes protocol version, endpoint identity, instructions, model, and sorted skills; callers may provide application-owned identity for model tooling or tenant scope.
+- `createAgentEndpoint` now supplies a stable service-binding/path identity by default and accepts a caller override for a concrete deployment identity.
+- Added execution-key coverage for differing executor identity.
+- This is an identity mechanism, not an assertion that every Agent endpoint is safely cacheable: callers must supply application/tenant/deployment identity where the default binding/path value is insufficient.
+- Validation passed: `bun run build` and `bun run test:unit`.
+- Next: represent cached `undefined` explicitly and emit cache-hit lifecycle events. Those event changes should be revisited alongside deferred event sequencing work.
