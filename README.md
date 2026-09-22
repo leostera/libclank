@@ -1,43 +1,49 @@
-# libclank
+# LibClank
 
-Cloudflare-native, typed agentic workflows. A single pnpm monorepo for workflow graphs, a Cloudflare scheduler runtime, and team-owned Agents SDK runtimes.
+Typed, code-first agentic workflows with durable local execution and an operational dashboard.
 
-## Repository
-
-```text
-packages/core        graph primitives, opaque IDs, triggers
-packages/scheduler   execution events and event stores
-packages/agent       Task.agent and AgentEndpoint protocol
-packages/cloudflare  Hono + Workers endpoint adapters
-packages/gitlab      optional typed GitLab tasks
-apps/scheduler       deployable workflow Worker
-apps/agent           deployable team-owned Agents SDK DO
-```
-
-## Deployment model
+Define workflows in TypeScript with Effect. LibClank persists runs, task instances, dependencies, attempts, outputs, artifacts, leases, and events—not JavaScript closures.
 
 ```text
-scheduler Worker
-  → workflow-run coordination
-  → Task.fn / Task.effect
-  → Task.agent → team-owned Agent SDK DO
+webhook
+  → fetch source
+    → analyze topic
+    → analyze style
+    → analyze confidence
 ```
 
-The scheduler does not use Cloudflare's external `cloudflare-agent` product. Teams deploy their own `AgentRuntime` in `apps/agent`; the scheduler uses an `AgentEndpoint` to reach it. Agent lifecycle, credentials, tools, and deployment remain team-owned.
+## User manual
 
-## Checks
+Start with the [LibClank Manual](manual/README.md):
+
+- [Getting started](manual/01-getting-started.md)
+- [Authoring workflows](manual/03-authoring-workflows.md)
+- [Local durable runtime](manual/04-local-durable-runtime.md)
+- [Agent tasks and artifacts](manual/05-agent-tasks-and-artifacts.md)
+- [Dashboard and operations](manual/06-dashboard-and-operations.md)
+- [Testing your workflows](manual/07-testing.md)
+- [Cloudflare and deployment](manual/08-cloudflare-and-deployment.md)
+- [Reference and limitations](manual/10-reference-and-limitations.md)
+
+## Try an example
 
 ```bash
-pnpm install
-pnpm build
-pnpm typecheck
+bun install
+bun run example:parallel-analyses
 ```
 
-Deploy the applications independently with Wrangler:
+Then open <http://localhost:8789/>.
+
+The parallel-analysis example uses local SQLite, Pi-backed agent tasks, a run graph, and persisted logs. It requires Pi to be installed and authenticated.
+
+## Repository checks
 
 ```bash
-pnpm --filter @libclank/app-agent exec wrangler deploy
-pnpm --filter @libclank/app-scheduler exec wrangler deploy
+bun run build
+bun run typecheck
+bun run test
 ```
 
-The Agent SDK task protocol and Durable Object-backed workflow execution are the next implementation layer. The current repository establishes the Cloudflare-only package boundaries and typed endpoint seam.
+## Contributor documentation
+
+Architecture, implementation rationale, and roadmap material live in [`docs/rfds/`](docs/rfds/), beginning with [RFD0001](docs/rfds/RFD0001-libclank-design.md).
