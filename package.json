@@ -2,33 +2,14 @@
   "name": "libclank",
   "private": true,
   "type": "module",
-  "exports": {
-    "./core": {
-      "types": "./dist/core/index.d.ts",
-      "default": "./dist/core.js"
-    },
-    "./agent": {
-      "types": "./dist/agent/index.d.ts",
-      "default": "./dist/agent.js"
-    },
-    "./cloudflare": {
-      "types": "./dist/cloudflare/index.d.ts",
-      "default": "./dist/cloudflare.js"
-    }
-  },
   "packageManager": "bun@1.3.11",
-  "files": [
-    "dist"
-  ],
   "workspaces": [
     "packages/*",
     "apps/*"
   ],
   "scripts": {
-    "build": "bun run build:workspaces && bun run build:git-package",
+    "build": "bun run build:workspaces",
     "build:workspaces": "bun run --filter @libclank/core build && bun run --filter @libclank/artifacts build && bun run --filter @libclank/agent build && bun run --filter @libclank/gitlab build && bun run --filter @libclank/scheduler build && bun run --filter @libclank/local build && bun run --filter @libclank/cloudflare build && bun run --filter @libclank/ui build && bun run --filter @libclank/app-agent build && bun run --filter @libclank/app-scheduler build",
-    "build:git-package": "bun scripts/build-git-package.ts",
-    "assemble:git-package": "bun scripts/assemble-git-package.ts",
     "typecheck": "bun run build && bun run typecheck:packages",
     "typecheck:packages": "bun run --filter '*' typecheck",
     "test": "bun run build && bun run test:unit && bun run test:e2e && bun run test:workers",
