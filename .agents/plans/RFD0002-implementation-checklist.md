@@ -12,6 +12,15 @@ Implement the shared, correctness-oriented durable scheduler defined by [RFD0002
 
 The current repository has typed workflow composition, manifests, a local SQLite scheduler, and Cloudflare prototypes, but its execution paths do not yet share one lifecycle contract. This plan covers transactional state transitions, idempotent asynchronous submission, policy enforcement, explicit graph manifests, bounded dynamic work, Cloudflare runtime unification, and Agent protocol hardening. UI lifecycle controls, event streaming, and artifact provenance remain outside this plan except where compatibility changes are required.
 
+## Delivery priority
+
+The user selected this implementation order on 2026-09-22:
+
+1. **Milestone 2 — idempotent asynchronous submission.** Start with only the minimal additive storage migration needed for trigger identity, input digest, and uniqueness; defer broad event/claim storage hardening.
+2. **Milestone 5 — durable bounded dynamic work.** Implement persisted bounded fan-out after submission has a durable asynchronous lifecycle.
+3. **Milestone 6 — Cloudflare runtime unification.** Implement the shared lifecycle over per-run Durable Object SQLite after local submission and fan-out semantics are defined.
+4. **Remaining work.** Return to Milestone 1 storage hardening, then graph manifest v2, residual cache work, Agent boundary hardening, and cleanup in dependency order.
+
 ## Working rules
 
 - Land each milestone with tests and without leaving `main` unable to build.
@@ -39,7 +48,7 @@ bun run test
 
 ## Milestone 1 - Ordered events and transactional database operations
 
-> Deferred at the user's request on 2026-09-22. Continue with its additive migration work before implementing Milestone 2 submission/idempotency storage changes.
+> Broad storage hardening is deferred. The user selected Milestone 2 first on 2026-09-22; implement only its minimal additive idempotency migration before returning to this milestone's event sequencing, claim tokens, and transactional lifecycle work.
 
 Affected areas:
 
@@ -371,4 +380,4 @@ The following RFD decisions must be resolved before their dependent milestone is
 - Expanded Agent task requests with persisted node-instance identity, a stable attempt execution token, and executor identity. `Task.agent` derives all fields from durable execution context; the sample Scheduler and Agent applications now send and validate them.
 - Updated Cloudflare deployment guidance to explain endpoint deduplication use of the execution token.
 - Validation passed: `bun run build`, `bun run test:unit`, and `bun run test:workers`.
-- Next: add runtime request/response schemas and payload-size limits for the Agent boundary; transport authentication and endpoint-side token deduplication follow after that.
+- The user reprioritized execution: next is Milestone 2, beginning with the minimal idempotency storage migration; then durable bounded fan-out and Cloudflare runtime unification. Agent schemas/limits resume afterward.
