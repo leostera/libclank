@@ -21,12 +21,15 @@ export interface ParsedDefinitionId {
 /** Canonical LibClank URI construction and parsing. */
 export const Id = {
   task: (value: string): TaskId => definition("task", value) as TaskId,
-  node: (): NodeId => uuid("node") as NodeId,
+  // Node definitions are commonly constructed at Worker module scope, where Cloudflare
+  // disallows random-value generation. Their process-local UUIDs are deterministic and
+  // unique within the loaded graph; runtime identities below remain random.
+  node: (): NodeId => scopedUuid("node") as NodeId,
   trigger: (value: string): TriggerId => definition("trigger", value) as TriggerId,
   workflow: (value: string): WorkflowId => definition("workflow", value) as WorkflowId,
   agent: (value: string): AgentId => definition("agent", value) as AgentId,
   artifact: (value: string): ArtifactId => definition("artifact", value) as ArtifactId,
-  nodeInstance: (): NodeInstanceId => uuid("node-instance") as NodeInstanceId,
+  nodeInstance: (): NodeInstanceId => runtimeUuid("node-instance") as NodeInstanceId,
   parse: (value: string): ParsedDefinitionId => parseDefinition(value),
   name: (value: DefinitionId): string => parseDefinition(value).name,
   kind: (value: DefinitionId): DefinitionKind => parseDefinition(value).kind,
@@ -50,9 +53,16 @@ function definition(kind: DefinitionKind, value: string): DefinitionId {
   return `clank:${kind}:${name.split("/").map(encodeURIComponent).join("/")}` as DefinitionId
 }
 
-function uuid(kind: string): string {
-  const value = crypto.randomUUID()
-  return `clank:${kind}:${value}`
+let scopedNodeSequence = 0
+
+function scopedUuid(kind: string): string {
+  scopedNodeSequence += 1
+  const suffix = scopedNodeSequence.toString(16).padStart(12, "0")
+  return `clank:${kind}:00000000-0000-4000-8000-${suffix}`
+}
+
+function runtimeUuid(kind: string): string {
+  return `clank:${kind}:${crypto.randomUUID()}`
 }
 
 function parseDefinition(value: string): ParsedDefinitionId {
