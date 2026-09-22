@@ -21,7 +21,8 @@ export interface ClankerCloudflareConfig {
 }
 
 export interface ClankerOptions {
-  readonly workflows: readonly Node<unknown, unknown>[]
+  /** Workflows are triggers, so their external input is always `void`. */
+  readonly workflows: readonly Node<never, unknown>[]
   readonly cloudflare?: ClankerCloudflareConfig
 }
 
