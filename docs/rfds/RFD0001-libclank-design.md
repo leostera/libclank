@@ -44,7 +44,7 @@ const trigger = Triggers.webhook<Request>({
 })
 
 const fetchMarkdown = Task.fn({
-  id: Id.node("fetch-markdown"),
+  id: Id.task("fetch-markdown"),
   run: fetchMarkdownFromSource,
 })
 

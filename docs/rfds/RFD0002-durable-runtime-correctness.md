@@ -116,7 +116,7 @@ The scheduler uses each task definition's retry and cache policy:
 
 ```ts
 Task.agent({
-  id: Id.node("summarize"),
+  id: Id.task("summarize"),
   retry: { maxAttempts: 3, backoffMs: 2_000 },
   cache: "by-input",
   // ...
