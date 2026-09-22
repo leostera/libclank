@@ -17,9 +17,15 @@ export interface AgentTaskRequest<Input = unknown> {
   readonly version: typeof AGENT_TASK_PROTOCOL_VERSION
   readonly runId: RunId
   readonly nodeId: NodeId
+  /** Unique persisted instance of this task within the workflow run. */
+  readonly nodeInstanceId: string
+  /** Stable at-least-once execution identity for this exact attempt. */
+  readonly executionToken: string
   readonly attempt: number
   readonly input: Input
   readonly instructions: string
+  /** Cache and deployment identity for the executor selected by the workflow. */
+  readonly executorIdentity: unknown
   readonly model?: string
   readonly skills?: readonly string[]
 }
@@ -68,30 +74,36 @@ export const Task = {
     /** Adds application-owned model, tool, or tenant identity to cache keys. */
     executor?: NodeDefinition["executor"]
   }): TaskNode<Input, Output> {
+    const executorIdentity = {
+      protocolVersion: AGENT_TASK_PROTOCOL_VERSION,
+      endpoint: options.endpoint.identity ?? null,
+      instructions: options.instructions,
+      model: options.model ?? null,
+      skills: [...(options.skills ?? [])].sort(),
+      ...(options.executor === undefined ? {} : { application: options.executor }),
+    }
     return CoreTask.fn({
       id: options.id,
       description: options.description ?? options.instructions,
       cache: options.cache ?? "by-input",
       ...(options.version === undefined ? {} : { version: options.version }),
       ...(options.retry === undefined ? {} : { retry: options.retry }),
-      executor: {
-        protocolVersion: AGENT_TASK_PROTOCOL_VERSION,
-        endpoint: options.endpoint.identity ?? null,
-        instructions: options.instructions,
-        model: options.model ?? null,
-        skills: [...(options.skills ?? [])].sort(),
-        ...(options.executor === undefined ? {} : { application: options.executor }),
-      },
+      executor: executorIdentity,
       run: (input, context?: ExecutionContext) => {
         const runId = context?.runId
         if (!runId) return Effect.die(new Error(`Agent task ${options.id} requires a workflow run ID`))
+        const attempt = context?.attempt ?? 1
+        const nodeInstanceId = context?.nodeInstanceId ?? `${runId}:${options.id}`
         return options.endpoint.run<Input, Output>({
           version: AGENT_TASK_PROTOCOL_VERSION,
           runId,
           nodeId: options.id,
-          attempt: context?.attempt ?? 1,
+          nodeInstanceId,
+          executionToken: `${runId}:${nodeInstanceId}:${attempt}`,
+          attempt,
           input,
           instructions: options.instructions,
+          executorIdentity,
           ...(options.model === undefined ? {} : { model: options.model }),
           ...(options.skills === undefined ? {} : { skills: options.skills }),
         })

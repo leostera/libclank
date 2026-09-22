@@ -14,9 +14,12 @@ describe("createAgentEndpoint", () => {
         version: 1,
         runId: Id.run(),
         nodeId: Id.node("agent"),
+        nodeInstanceId: "run:agent",
+        executionToken: "run:agent:1",
         attempt: 1,
         input: { value: 1 },
         instructions: "Do not run.",
+        executorIdentity: { deployment: "test" },
       }),
     ).then(
       () => undefined,

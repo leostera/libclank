@@ -34,7 +34,7 @@ function makeReviewTask(env: Env) {
 }
 ```
 
-`createAgentEndpoint` sends a versioned `AgentTaskRequest` to `/task` by default.
+`createAgentEndpoint` sends a versioned `AgentTaskRequest` to `/task` by default. Each request includes the run ID, node ID, persisted node-instance ID, attempt, execution token, and executor identity. Treat the execution token as an at-least-once attempt identity when deduplicating an endpoint's external side effects.
 
 Configure the binding in `wrangler.jsonc`:
 

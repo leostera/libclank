@@ -73,9 +73,12 @@ export class WorkflowRun implements DurableObject {
       version: AGENT_TASK_PROTOCOL_VERSION,
       runId,
       nodeId: agentNodeId,
+      nodeInstanceId: `${runId}:${agentNodeId}`,
+      executionToken: `${runId}:${agentNodeId}:1`,
       attempt: 1,
       input,
       instructions: "Review the supplied merge-request payload using the team's configured tools.",
+      executorIdentity: { protocolVersion: AGENT_TASK_PROTOCOL_VERSION, deployment: "scheduler-app" },
     }
 
     try {

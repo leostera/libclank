@@ -247,7 +247,7 @@ Affected areas:
 - Agent and scheduler Wrangler configuration
 
 - [ ] Version the expanded Agent request contract.
-- [ ] Add node instance ID, execution token, attempt, and executor/deployment identity.
+- [x] Add node instance ID, execution token, attempt, and executor/deployment identity.
 - [ ] Add runtime request and response schemas.
 - [ ] Add configurable request and response size limits.
 - [ ] Implement execution-token deduplication in the reference Agent runtime/helper.
@@ -364,3 +364,11 @@ The following RFD decisions must be resolved before their dependent milestone is
 - Added unit coverage for the full first-execution/cache-hit lifecycle event order.
 - Cached `undefined` remains intentionally unresolved because current node persistence represents absent output and `undefined` output identically.
 - Next: defer that representation change until the storage migration work resumes, then make cache persistence and reuse transactional.
+
+### 2026-09-22 — Agent execution-identity slice landed
+
+- Removed the GitHub Pages workflow at the user's request; the manual remains repository Markdown only.
+- Expanded Agent task requests with persisted node-instance identity, a stable attempt execution token, and executor identity. `Task.agent` derives all fields from durable execution context; the sample Scheduler and Agent applications now send and validate them.
+- Updated Cloudflare deployment guidance to explain endpoint deduplication use of the execution token.
+- Validation passed: `bun run build`, `bun run test:unit`, and `bun run test:workers`.
+- Next: add runtime request/response schemas and payload-size limits for the Agent boundary; transport authentication and endpoint-side token deduplication follow after that.

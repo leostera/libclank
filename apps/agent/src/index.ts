@@ -1,5 +1,5 @@
 import { Agent } from "agents"
-import type { AgentTaskRequest, AgentTaskResponse } from "@libclank/agent"
+import { AGENT_TASK_PROTOCOL_VERSION, type AgentTaskRequest, type AgentTaskResponse } from "@libclank/agent"
 
 export interface Env {
   LIBCLANK_AGENT: DurableObjectNamespace
@@ -18,7 +18,15 @@ export class LibclankAgent extends Agent<Env> {
     }
 
     const task = (await request.json()) as AgentTaskRequest<unknown>
-    if (task.version !== 1 || !task.runId || !task.nodeId || typeof task.instructions !== "string") {
+    if (
+      task.version !== AGENT_TASK_PROTOCOL_VERSION ||
+      !task.runId ||
+      !task.nodeId ||
+      !task.nodeInstanceId ||
+      !task.executionToken ||
+      typeof task.instructions !== "string" ||
+      task.executorIdentity === undefined
+    ) {
       return Response.json(
         { ok: false, error: { message: "Invalid AgentTaskRequest", retryable: false } } satisfies AgentTaskResponse,
         { status: 400 },

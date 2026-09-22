@@ -31,7 +31,12 @@ describe("Task.agent", () => {
     )
 
     expect(output).toBe("ok")
-    expect(request).toMatchObject({ attempt: 2, input: 7 })
+    expect(request).toMatchObject({
+      attempt: 2,
+      input: 7,
+      nodeInstanceId: "run:agent-attempt",
+      executionToken: expect.stringMatching(/:run:agent-attempt:2$/),
+    })
     expect(task.definition.retry).toEqual({ maxAttempts: 2, backoffMs: 25 })
     expect(task.definition.executor).toEqual({
       protocolVersion: 1,
