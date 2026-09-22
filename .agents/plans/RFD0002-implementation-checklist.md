@@ -83,7 +83,7 @@ Tests:
 - [ ] completion atomically stores output, event, promotions, and run state;
 - [ ] reopening SQLite preserves state and sequence.
 
-## Milestone 2 - Idempotent submission and asynchronous scheduler API
+## Milestone 2 - Asynchronous scheduler API
 
 Affected areas:
 
@@ -96,21 +96,15 @@ Affected areas:
 - [ ] Add `TriggerOptions`, `RunSubmission`, and `TickResult` public types.
 - [ ] Add `submitTrigger` and run-scoped `tick` APIs.
 - [ ] Preserve `runTrigger` as a synchronous local/testing convenience wrapper.
-- [ ] Persist `triggerId`, nullable `idempotencyKey`, and canonical input digest on runs.
-- [ ] Add unique storage enforcement for keyed submissions.
-- [ ] Return an existing run for the same key and input.
-- [ ] Return typed `IdempotencyConflict` for the same key and different input.
-- [ ] Enforce idempotency per `(workflowId, triggerId, key)` and return one deduplicated submission per matching workflow.
-- [ ] Change hosted Hono trigger routes to return `202` after durable submission.
+- [ ] Persist `triggerId` and canonical input digest on runs when run metadata migration work resumes.
+- [ ] Defer optional keyed submission idempotency and `IdempotencyConflict` until hosted duplicate-delivery protection is needed.
+- [x] Change hosted Hono trigger routes to return `202` after durable submission.
 - [ ] Expose run-location/status links in trigger responses where an operations API is available.
 - [ ] Ensure retries waiting for time do not mark a run failed.
 
 Tests:
 
-- [ ] duplicate sequential submission;
-- [ ] duplicate concurrent submission;
-- [ ] conflicting duplicate payload;
-- [ ] unkeyed identical payload creates distinct runs;
+- [ ] each submission creates a distinct run, including identical payloads;
 - [ ] hosted handler returns before task completion;
 - [ ] synchronous wrapper drains deterministic local work.
 
@@ -380,4 +374,11 @@ The following RFD decisions must be resolved before their dependent milestone is
 - Expanded Agent task requests with persisted node-instance identity, a stable attempt execution token, and executor identity. `Task.agent` derives all fields from durable execution context; the sample Scheduler and Agent applications now send and validate them.
 - Updated Cloudflare deployment guidance to explain endpoint deduplication use of the execution token.
 - Validation passed: `bun run build`, `bun run test:unit`, and `bun run test:workers`.
-- The user reprioritized execution: next is Milestone 2, beginning with the minimal idempotency storage migration; then durable bounded fan-out and Cloudflare runtime unification. Agent schemas/limits resume afterward.
+- The user reprioritized execution: next is asynchronous trigger submission without keyed idempotency, then durable bounded fan-out and Cloudflare runtime unification. Agent schemas/limits resume afterward.
+
+### 2026-09-22 — Async trigger submission slice landed
+
+- Added optional `Scheduler.submitTrigger`, which persists and materializes a durable run then returns running submission metadata without waiting for task completion. `runTrigger` remains the synchronous compatibility API.
+- `createTriggerApp` now responds with `202 Accepted` when the configured scheduler supports submission; it otherwise retains synchronous behavior.
+- Each submission deliberately creates a distinct run. Keyed idempotency is deferred; graph caching can avoid repeat computation for cache-safe tasks but does not deduplicate external side effects.
+- The initial background drain is intentionally transitional: next hardening adds run-scoped `tick`/wake-up ownership before the Cloudflare runtime implementation.

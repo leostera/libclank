@@ -46,6 +46,10 @@ export const createTriggerApp = (scheduler: Scheduler): Hono => {
           : trigger.decode
             ? await trigger.decode(context.req.raw)
             : await context.req.json()
+      if (scheduler.submitTrigger) {
+        const runs = await scheduler.submitTrigger(trigger.id, payload)
+        return context.json({ triggerId: trigger.id, runs }, 202)
+      }
       const runs = await scheduler.runTrigger(trigger.id, payload)
       return context.json({ triggerId: trigger.id, runs })
     })
