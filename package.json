@@ -8,7 +8,10 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "bun run --filter @libclank/core build && bun run --filter @libclank/artifacts build && bun run --filter @libclank/agent build && bun run --filter @libclank/gitlab build && bun run --filter @libclank/scheduler build && bun run --filter @libclank/local build && bun run --filter @libclank/cloudflare build && bun run --filter @libclank/ui build && bun run --filter @libclank/app-agent build && bun run --filter @libclank/app-scheduler build",
+    "build": "bun run build:workspaces && bun run build:git-package",
+    "build:workspaces": "bun run --filter @libclank/core build && bun run --filter @libclank/artifacts build && bun run --filter @libclank/agent build && bun run --filter @libclank/gitlab build && bun run --filter @libclank/scheduler build && bun run --filter @libclank/local build && bun run --filter @libclank/cloudflare build && bun run --filter @libclank/ui build && bun run --filter @libclank/app-agent build && bun run --filter @libclank/app-scheduler build",
+    "build:git-package": "bun scripts/build-git-package.ts",
+    "assemble:git-package": "bun scripts/assemble-git-package.ts",
     "typecheck": "bun run build && bun run typecheck:packages",
     "typecheck:packages": "bun run --filter '*' typecheck",
     "test": "bun run build && bun run test:unit && bun run test:e2e && bun run test:workers",
@@ -31,13 +34,7 @@
     "vitest": "^4.1.0"
   },
   "dependencies": {
-    "@libclank/agent": "workspace:*",
-    "@libclank/artifacts": "workspace:*",
-    "@libclank/cloudflare": "workspace:*",
-    "@libclank/core": "workspace:*",
-    "@libclank/local": "workspace:*",
-    "@libclank/scheduler": "workspace:*",
-    "@libclank/ui": "workspace:*",
-    "effect": "4.0.0-rc.116"
+    "effect": "4.0.0-rc.116",
+    "hono": "^4.6.14"
   }
 }

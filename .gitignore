@@ -1,6 +1,7 @@
 node_modules/
 .clank/
 dist/
+build/
 summaries/
 link-digests/
 parallel-analysis-artifacts/
