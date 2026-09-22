@@ -119,11 +119,26 @@ export class DurableTaskScheduler {
         const cached = await this.options.database.cached?.(node.executionKey)
         if (cached && cached.id !== node.id) {
           const { leaseExpiresAt: _lease, ...reused } = node
+          await this.options.database.appendEvent?.({
+            eventId: Id.event(),
+            type: "node.cache_hit",
+            runId: node.runId,
+            nodeId: node.nodeId,
+            executionKey: node.executionKey,
+          })
           await this.options.database.putNode({
             ...reused,
             status: "completed",
             ...(cached.output === undefined ? {} : { output: cached.output }),
             ...(cached.outputArtifacts === undefined ? {} : { outputArtifacts: cached.outputArtifacts }),
+          })
+          await this.options.database.appendEvent?.({
+            eventId: Id.event(),
+            type: "node.completed",
+            runId: node.runId,
+            nodeId: node.nodeId,
+            output: cached.output,
+            durationMs: 0,
           })
           await this.options.database.promoteReady?.(node.runId)
           return

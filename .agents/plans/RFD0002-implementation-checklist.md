@@ -127,7 +127,7 @@ Affected areas:
 - [x] Include definition, version, input, artifacts, and executor identity in keys.
 - [x] Persist execution keys on node instances.
 - [ ] Represent cached `undefined` distinctly from no cached output.
-- [ ] Emit `node.cache_hit` and normal completion events on reuse.
+- [x] Emit `node.cache_hit` and normal completion events on reuse.
 - [ ] Require or derive cache-safe executor identity for agent tasks.
 
 Tests:
@@ -356,4 +356,11 @@ The following RFD decisions must be resolved before their dependent milestone is
 - Added execution-key coverage for differing executor identity.
 - This is an identity mechanism, not an assertion that every Agent endpoint is safely cacheable: callers must supply application/tenant/deployment identity where the default binding/path value is insufficient.
 - Validation passed: `bun run build` and `bun run test:unit`.
-- Next: represent cached `undefined` explicitly and emit cache-hit lifecycle events. Those event changes should be revisited alongside deferred event sequencing work.
+- Next: represent cached `undefined` explicitly; cache-hit lifecycle events can proceed without the deferred event-sequencing migration.
+
+### 2026-09-22 — Cache-hit observability slice landed
+
+- Added `node.cache_hit` to the scheduler event contract. A reuse now persists that event before the cached node is marked completed, then emits the normal `node.completed` event.
+- Added unit coverage for the full first-execution/cache-hit lifecycle event order.
+- Cached `undefined` remains intentionally unresolved because current node persistence represents absent output and `undefined` output identically.
+- Next: defer that representation change until the storage migration work resumes, then make cache persistence and reuse transactional.

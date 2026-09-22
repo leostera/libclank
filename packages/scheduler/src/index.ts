@@ -37,6 +37,13 @@ export type ExecutionEvent =
       readonly attempt: number
     }
   | {
+      readonly type: "node.cache_hit"
+      readonly eventId: EventId
+      readonly runId: RunId
+      readonly nodeId: NodeId
+      readonly executionKey: string
+    }
+  | {
       readonly type: "node.completed"
       readonly eventId: EventId
       readonly runId: RunId

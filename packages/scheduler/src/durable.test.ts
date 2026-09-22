@@ -4,6 +4,7 @@ import { Id, Task, createTaskRegistry } from "@libclank/core"
 import type { NodeInstanceRecord, WorkflowRunRecord } from "./run-state.js"
 import type { SchedulerDatabase } from "./database.js"
 import { DurableTaskScheduler } from "./durable.js"
+import type { ExecutionEvent } from "./index.js"
 
 describe("DurableTaskScheduler", () => {
   it("decodes inputs and validates outputs at the execution boundary", async () => {
@@ -59,6 +60,13 @@ describe("DurableTaskScheduler", () => {
     expect(executions).toBe(1)
     expect(database.node).toMatchObject({ status: "completed", output: 8 })
     expect(database.node.executionKey).toMatch(/^sha256:/)
+    expect(database.events.map((event) => event.type)).toEqual([
+      "node.started",
+      "node.completed",
+      "node.started",
+      "node.cache_hit",
+      "node.completed",
+    ])
   })
 
   it("does not exceed the task's declared maximum attempts", async () => {
@@ -163,6 +171,7 @@ describe("DurableTaskScheduler", () => {
 })
 
 class FakeDatabase implements SchedulerDatabase {
+  readonly events: ExecutionEvent[] = []
   private cachedNode: NodeInstanceRecord | undefined
   constructor(public node: NodeInstanceRecord) {}
   async register() {}
@@ -197,5 +206,8 @@ class FakeDatabase implements SchedulerDatabase {
   }
   async cached(executionKey: string) {
     return this.cachedNode?.executionKey === executionKey ? this.cachedNode : undefined
+  }
+  async appendEvent(event: ExecutionEvent) {
+    this.events.push(event)
   }
 }
