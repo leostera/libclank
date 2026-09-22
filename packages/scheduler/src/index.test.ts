@@ -8,9 +8,9 @@ describe("MemoryEventStore", () => {
     const store = new MemoryEventStore()
     const runId = Id.run()
     const events: ExecutionEvent[] = [
-      { type: "workflow.scheduled", eventId: Id.event(), runId, workflowId: Id.node("review") },
-      { type: "node.started", eventId: Id.event(), runId, nodeId: Id.node("review"), attempt: 1 },
-      { type: "node.completed", eventId: Id.event(), runId, nodeId: Id.node("review"), output: "ok", durationMs: 10 },
+      { type: "workflow.scheduled", eventId: Id.event(), runId, workflowId: Id.node() },
+      { type: "node.started", eventId: Id.event(), runId, nodeId: Id.node(), attempt: 1 },
+      { type: "node.completed", eventId: Id.event(), runId, nodeId: Id.node(), output: "ok", durationMs: 10 },
     ]
 
     for (const event of events) await Effect.runPromise(store.append(event))

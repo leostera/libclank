@@ -50,7 +50,7 @@ A `Task` is a user-facing node constructor:
 
 ```ts
 const normalize = Task.fn<string, string>({
-  id: Id.node("normalize"),
+  id: Id.task("normalize"),
   run: (input) => Effect.succeed(input.trim().toLowerCase()),
 })
 ```
@@ -59,7 +59,7 @@ Use `Task.effect<Input>` for work whose meaningful result is `void`:
 
 ```ts
 const notify = Task.effect<Message>({
-  id: Id.node("notify"),
+  id: Id.task("notify"),
   run: (message) => Effect.promise(() => sendMessage(message)),
 })
 ```
@@ -84,16 +84,16 @@ All three use the same function, but each has independent durable state and depe
 Use stable, descriptive IDs:
 
 ```ts
-Id.node("fetch-markdown")
-Id.node("analyze-writing-style")
+Id.task("fetch-markdown")
+Id.task("analyze-writing-style")
 Id.trigger("analyze-url")
 ```
 
 IDs become canonical LibClank URIs, for example:
 
 ```text
-libclank://node/fetch-markdown
-libclank://trigger/analyze-url
+clank:task:fetch-markdown
+clank:trigger:analyze-url
 ```
 
 Changing a task ID changes durable identity. Treat IDs as part of your deployment compatibility contract.

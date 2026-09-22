@@ -5,8 +5,8 @@ import { createWorkflowManifest } from "./manifest.js"
 
 describe("workflow manifests and execution keys", () => {
   const task = {
-    id: Id.node("task"),
-    stepId: Id.node("task"),
+    id: Id.node(),
+    stepId: Id.node(),
     description: "A task",
     version: "1",
     cache: "by-input" as const,

@@ -1,6 +1,6 @@
 import { Cause, Effect, type Schema } from "effect"
 import { findNodeExecutionError, NodeExecutionError } from "./errors.js"
-import { Id, type NodeId, type TriggerId } from "./id.js"
+import { Id, type NodeId, type TaskId, type TriggerId } from "./id.js"
 import { notify, type SchedulerObserver } from "./observer.js"
 
 export interface ExecutionContext {
@@ -28,6 +28,8 @@ export interface StepImplementation {
 export interface NodeDefinition {
   readonly id: NodeId
   readonly stepId: NodeId
+  /** Named source definition executed by this graph node. */
+  readonly taskId?: TaskId
   readonly description: string
   readonly version: string
   readonly cache: "never" | "by-input"
@@ -35,12 +37,15 @@ export interface NodeDefinition {
   readonly executor?: unknown
   readonly dependencies: readonly NodeId[]
   readonly retry: { readonly maxAttempts: number; readonly backoffMs: number }
-  readonly kind?: "static" | "fanout-item" | "fanout"
+  readonly kind?: "static" | "fanout-item" | "fanout" | "composition"
+  readonly composition?: "then" | "tap" | "map" | "map-each" | "forEach" | "fanout"
   readonly fanoutTemplate?: NodeId
 }
 
 export interface TriggerDefinition<Output = unknown> {
   readonly id: TriggerId
+  /** Graph node activated by this trigger. */
+  readonly nodeId?: NodeId
   readonly kind: "webhook" | "cron" | "manual"
   readonly path?: string
   readonly schedule?: string
@@ -132,8 +137,9 @@ export class Node<Input, Output> {
   then<Next>(next: Node<Output, Next>): Node<Input, Next>
   then<Next>(next: (output: Output) => NodeRun<Next> | Next): Node<Input, Next>
   then<Next>(next: Node<Output, Next> | ((output: Output) => NodeRun<Next> | Next)): Node<Input, Next> {
+    const nodeId = Id.node()
     return new Node(
-      Id.childNode(this.id, "then"),
+      nodeId,
       (input, context) =>
         Effect.flatMap(this.execute(input, context), (output) =>
           next instanceof Node ? next.execute(output, context) : toEffect(next(output)),
@@ -142,9 +148,11 @@ export class Node<Input, Output> {
       false,
       {
         ...this.definition,
-        id: Id.childNode(this.id, "then"),
-        stepId: Id.childNode(this.id, "then"),
+        id: nodeId,
+        stepId: nodeId,
         dependencies: [this.id, ...(next instanceof Node ? [next.id] : [])],
+        kind: "composition",
+        composition: "then",
       },
       [...this.definitions, ...(next instanceof Node ? next.definitions : [])],
       [...this.implementations, ...(next instanceof Node ? next.implementations : [])],
@@ -152,46 +160,40 @@ export class Node<Input, Output> {
   }
 
   tap(effect: Node<Output, unknown>): Node<Input, Output> {
+    const nodeId = Id.node()
     return new Node(
-      Id.childNode(this.id, "tap"),
+      nodeId,
       (input, context) =>
         Effect.flatMap(this.execute(input, context), (output) => Effect.as(effect.execute(output, context), output)),
       this.triggers,
       false,
       {
         ...this.definition,
-        id: Id.childNode(this.id, "tap"),
-        stepId: Id.childNode(this.id, "tap"),
+        id: nodeId,
+        stepId: nodeId,
         dependencies: [this.id, effect.id],
+        kind: "composition",
+        composition: "tap",
       },
-      [
-        ...this.definitions,
-        ...effect.definitions.map((definition) => ({
-          ...definition,
-          stepId: Id.childNode(Id.childNode(this.id, "tap"), Id.name(definition.stepId)),
-        })),
-      ],
-      [
-        ...this.implementations,
-        ...effect.implementations.map((implementation) => ({
-          stepId: Id.childNode(Id.childNode(this.id, "tap"), Id.name(implementation.stepId)),
-          node: implementation.node,
-        })),
-      ],
+      [...this.definitions, ...effect.definitions],
+      [...this.implementations, ...effect.implementations],
     )
   }
 
   map<Next>(transform: (output: Output) => Next): Node<Input, Next> {
+    const nodeId = Id.node()
     return new Node(
-      Id.childNode(this.id, "map"),
+      nodeId,
       (input, context) => Effect.map(this.execute(input, context), transform),
       this.triggers,
       false,
       {
         ...this.definition,
-        id: Id.childNode(this.id, "map"),
-        stepId: Id.childNode(this.id, "map"),
+        id: nodeId,
+        stepId: nodeId,
         dependencies: [this.id],
+        kind: "composition",
+        composition: "map",
       },
       this.definitions,
       this.implementations,
@@ -207,8 +209,9 @@ export class Node<Input, Output> {
     this: Node<Input, readonly Item[]>,
     next: Node<Item, Next> | ((item: Item) => NodeRun<Next> | Next),
   ): Node<Input, readonly Next[]> {
+    const nodeId = Id.node()
     return new Node(
-      Id.childNode(this.id, "map-each"),
+      nodeId,
       (input, context) =>
         Effect.flatMap(this.execute(input, context), (items) =>
           Effect.all(
@@ -220,10 +223,11 @@ export class Node<Input, Output> {
       false,
       {
         ...this.definition,
-        id: Id.childNode(this.id, "map-each"),
-        stepId: Id.childNode(this.id, "map-each"),
+        id: nodeId,
+        stepId: nodeId,
         dependencies: [this.id, ...(next instanceof Node ? [next.id] : [])],
         kind: "fanout",
+        composition: "map-each",
         ...(next instanceof Node ? { fanoutTemplate: next.id } : {}),
       },
       [
@@ -240,16 +244,14 @@ export class Node<Input, Output> {
     this: Node<Input, readonly Item[]>,
     next: (item: Node<Item, Item>) => Node<unknown, Next>,
   ): Node<Input, readonly Next[]> {
+    const nodeId = Id.node()
     return new Node(
-      Id.childNode(this.id, "forEach"),
+      nodeId,
       (input, context) =>
         Effect.flatMap(this.execute(input, context), (items) =>
           Effect.all(
-            items.map((item, index) =>
-              next(new Node(Id.childNode(this.id, `[${index}]`), () => Effect.succeed(item), [], false)).execute(
-                item,
-                context,
-              ),
+            items.map((item) =>
+              next(new Node(Id.node(), () => Effect.succeed(item), [], false)).execute(item, context),
             ),
             { concurrency: "unbounded" },
           ),
@@ -258,9 +260,11 @@ export class Node<Input, Output> {
       false,
       {
         ...this.definition,
-        id: Id.childNode(this.id, "forEach"),
-        stepId: Id.childNode(this.id, "forEach"),
+        id: nodeId,
+        stepId: nodeId,
         dependencies: [this.id],
+        kind: "composition",
+        composition: "forEach",
       },
       this.definitions,
       this.implementations,
@@ -270,8 +274,9 @@ export class Node<Input, Output> {
   fanout<Branches extends Record<string, Node<unknown, unknown>>>(
     branches: Branches,
   ): Node<Input, FanoutOutputs<Branches>> {
+    const nodeId = Id.node()
     return new Node<Input, FanoutOutputs<Branches>>(
-      Id.childNode(this.id, "fanout"),
+      nodeId,
       (input, context) =>
         Effect.flatMap(
           this.execute(input, context),
@@ -287,9 +292,11 @@ export class Node<Input, Output> {
       false,
       {
         ...this.definition,
-        id: Id.childNode(this.id, "fanout"),
-        stepId: Id.childNode(this.id, "fanout"),
+        id: nodeId,
+        stepId: nodeId,
         dependencies: [this.id, ...Object.values(branches).map((branch) => branch.id)],
+        kind: "composition",
+        composition: "fanout",
       },
       [...this.definitions, ...Object.values(branches).flatMap((branch) => branch.definitions)],
       [...this.implementations, ...Object.values(branches).flatMap((branch) => branch.implementations)],

@@ -8,7 +8,7 @@ export const Workflow = {
   ): Node<void, FanoutOutputs<Branches>> {
     const triggers = Object.values(branches).flatMap((branch) => branch.triggers)
     return new Node<void, FanoutOutputs<Branches>>(
-      Id.node("all"),
+      Id.node(),
       (_, context) =>
         Effect.all(
           Object.fromEntries(
@@ -24,7 +24,7 @@ export const Workflow = {
   oneOf<Output>(nodes: readonly Node<void, Output>[]): Trigger<Output> {
     const triggers = nodes.flatMap((node) => node.triggers)
     return new Node(
-      Id.node("oneOf"),
+      Id.node(),
       (_, context) => {
         const active = nodes.find((node) => node.triggers.some((trigger) => context?.triggerValues.has(trigger.id)))
         return active ? active.execute(undefined, context) : Effect.die(new Error("oneOf has no active input"))

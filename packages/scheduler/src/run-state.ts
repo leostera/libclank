@@ -17,6 +17,7 @@ export interface WorkflowRunRecord {
 }
 
 export interface NodeInstanceRecord {
+  /** UUID-backed clank:node-instance identifier. */
   readonly id: string
   readonly runId: RunId
   readonly nodeId: NodeId

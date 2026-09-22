@@ -57,8 +57,8 @@ export const runWorkflowConformance = async <Output>(
 /** Representative stable linear fixture for public-API and runtime compatibility tests. */
 export const createLinearWorkflowFixture = (): WorkflowFixture<number> => {
   const trigger = Triggers.webhook<number>({ id: Id.trigger("conformance-input") })
-  const increment = Task.fn({ id: Id.node("conformance-increment"), run: (value: number) => Effect.succeed(value + 1) })
-  const double = Task.fn({ id: Id.node("conformance-double"), run: (value: number) => Effect.succeed(value * 2) })
+  const increment = Task.fn({ id: Id.task("conformance-increment"), run: (value: number) => Effect.succeed(value + 1) })
+  const double = Task.fn({ id: Id.task("conformance-double"), run: (value: number) => Effect.succeed(value * 2) })
   return {
     triggerId: trigger.triggers[0]!.id,
     input: 20,

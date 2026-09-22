@@ -56,7 +56,7 @@ const trigger = Triggers.webhook<Input>({
 })
 
 const double = Task.fn<Input, Doubled>({
-  id: Id.node("double-value"),
+  id: Id.task("double-value"),
   description: "Double a number",
   input: Input,
   output: Doubled,
@@ -64,7 +64,7 @@ const double = Task.fn<Input, Doubled>({
 })
 
 const format = Task.fn<Doubled, string>({
-  id: Id.node("format-result"),
+  id: Id.task("format-result"),
   input: Doubled,
   output: Schema.String,
   run: ({ value }) => Effect.succeed(`result:${value}`),

@@ -17,7 +17,7 @@ import { describe, expect, it } from "vitest"
 import { Id, Task } from "@libclank/core"
 
 const normalize = Task.fn<string, string>({
-  id: Id.node("normalize"),
+  id: Id.task("normalize"),
   run: (value) => Effect.succeed(value.trim().toLowerCase()),
 })
 
@@ -61,7 +61,7 @@ describe("double workflow", () => {
       })
 
       const double = Task.fn({
-        id: Id.node("double"),
+        id: Id.task("double"),
         run: ({ value }: { value: number }) => Effect.succeed({ value: value * 2 }),
       })
 
@@ -151,7 +151,7 @@ Use deterministic failures:
 
 ```ts
 const fail = Task.fn<number, number>({
-  id: Id.node("fail"),
+  id: Id.task("fail"),
   run: () => Effect.fail(new Error("expected failure")),
 })
 ```

@@ -13,7 +13,7 @@ examples/team-deployment/
 const agent = createAgentEndpoint(env.REVIEW_AGENT)
 
 const review = Task.agent<MergeRequest, Review>({
-  id: Id.node("review-merge-request"),
+  id: Id.task("review-merge-request"),
   endpoint: agent,
   instructions: "Use the configured GitLab MCP tools to review this MR.",
 })

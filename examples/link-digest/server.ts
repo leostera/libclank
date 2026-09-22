@@ -55,24 +55,24 @@ const trigger = Triggers.webhook<UrlRequest>({
 })
 
 const discoverLinks = Task.agent<UrlRequest, readonly Link[]>({
-  id: Id.node("discover-interesting-links"),
+  id: Id.task("discover-interesting-links"),
   endpoint: discoverLinksEndpoint,
   instructions: "Extract three interesting links from the supplied page.",
 })
 
 const summarizeLink = Task.agent<LinkArtifact, LinkSummary>({
-  id: Id.node("summarize-link"),
+  id: Id.task("summarize-link"),
   endpoint: summarizeLinkEndpoint,
   instructions: "Summarize one linked page into structured JSON.",
 })
 
 const writeDigest = Task.agent<DigestInput, { readonly path: string }>({
-  id: Id.node("write-link-digest"),
+  id: Id.task("write-link-digest"),
   endpoint: writeDigestEndpoint,
   instructions: "Synthesize link summaries into a Markdown digest.",
 })
 
-const openDigest = openFile({ id: Id.node("open-link-digest") })
+const openDigest = openFile({ id: Id.task("open-link-digest") })
 
 const workflow = trigger
   .then(discoverLinks)

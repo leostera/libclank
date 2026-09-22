@@ -58,19 +58,19 @@ const trigger = Triggers.webhook<SourceRequest>({
 })
 
 const fetchContent = Task.agent<SourceRequest, MarkdownArtifact>({
-  id: Id.node("fetch-url-markdown"),
+  id: Id.task("fetch-url-markdown"),
   endpoint: fetchContentEndpoint,
   instructions: "Fetch a URL and save its Markdown source.",
 })
 
 const analyzeTopic = Task.agent<MarkdownArtifact, AnalysisArtifact>({
-  id: Id.node("analyze-topic"),
+  id: Id.task("analyze-topic"),
   endpoint: analysisEndpoint("topic", "Identify the most interesting topic or argument and explain why it matters."),
   instructions: "Analyze the most interesting topic.",
 })
 
 const analyzeStyle = Task.agent<MarkdownArtifact, AnalysisArtifact>({
-  id: Id.node("analyze-writing-style"),
+  id: Id.task("analyze-writing-style"),
   endpoint: analysisEndpoint(
     "style",
     "Analyze the writing style: structure, tone, clarity, rhetorical choices, and intended audience.",
@@ -79,7 +79,7 @@ const analyzeStyle = Task.agent<MarkdownArtifact, AnalysisArtifact>({
 })
 
 const analyzeConfidence = Task.agent<MarkdownArtifact, AnalysisArtifact>({
-  id: Id.node("analyze-author-confidence"),
+  id: Id.task("analyze-author-confidence"),
   endpoint: analysisEndpoint(
     "confidence",
     "Assess how confident a reader should be that the author knows what they are discussing. Cite evidence, uncertainty, and limitations.",
@@ -87,7 +87,7 @@ const analyzeConfidence = Task.agent<MarkdownArtifact, AnalysisArtifact>({
   instructions: "Analyze author expertise and confidence.",
 })
 
-const openAnalysis = openFile({ id: Id.node("open-analysis"), required: false })
+const openAnalysis = openFile({ id: Id.task("open-analysis"), required: false })
 
 const workflow = trigger.then(fetchContent).fanout({
   topic: analyzeTopic.tap(openAnalysis),

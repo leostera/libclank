@@ -8,7 +8,7 @@ import type { ExecutionEvent } from "./index.js"
 
 describe("DurableTaskScheduler", () => {
   it("decodes inputs and validates outputs at the execution boundary", async () => {
-    const nodeId = Id.node("typed")
+    const nodeId = Id.node()
     const task = Task.fn({
       id: nodeId,
       input: Schema.Struct({ value: Schema.Number }),
@@ -30,7 +30,7 @@ describe("DurableTaskScheduler", () => {
   })
 
   it("reuses a completed cacheable task output for the same validated input", async () => {
-    const nodeId = Id.node("cacheable")
+    const nodeId = Id.node()
     let executions = 0
     const task = Task.fn({
       id: nodeId,
@@ -70,7 +70,7 @@ describe("DurableTaskScheduler", () => {
   })
 
   it("does not exceed the task's declared maximum attempts", async () => {
-    const nodeId = Id.node("single-attempt")
+    const nodeId = Id.node()
     let executions = 0
     const task = Task.fn({
       id: nodeId,
@@ -101,7 +101,7 @@ describe("DurableTaskScheduler", () => {
   })
 
   it("does not retry an invalid task output", async () => {
-    const nodeId = Id.node("invalid-output")
+    const nodeId = Id.node()
     let executions = 0
     const task = Task.fn({
       id: nodeId,
@@ -134,7 +134,7 @@ describe("DurableTaskScheduler", () => {
   })
 
   it("retries a failed task from its persisted input", async () => {
-    const nodeId = Id.node("retryable")
+    const nodeId = Id.node()
     let executions = 0
     const task = Task.fn({
       id: nodeId,

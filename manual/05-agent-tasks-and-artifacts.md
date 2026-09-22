@@ -9,7 +9,7 @@ import { Task } from "@libclank/agent"
 import { Id } from "@libclank/core"
 
 const review = Task.agent<MergeRequest, Review>({
-  id: Id.node("review-merge-request"),
+  id: Id.task("review-merge-request"),
   endpoint: reviewAgent,
   instructions: "Review the merge request and return a structured review.",
   model: "preferred-model",
@@ -200,7 +200,7 @@ Use content-addressed references when:
 import { openFile } from "@libclank/local"
 
 const openReport = openFile({
-  id: Id.node("open-report"),
+  id: Id.task("open-report"),
   required: false,
 })
 ```

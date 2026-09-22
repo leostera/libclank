@@ -24,19 +24,19 @@ describe("local durable workflow E2E", () => {
         path: "/hooks/fanout-input",
       })
       const source = Task.fn({
-        id: Id.node("fanout-source"),
+        id: Id.task("fanout-source"),
         run: (input: { value: number }) => Effect.succeed(input.value),
       })
-      const left = Task.fn({ id: Id.node("fanout-left"), run: (input: number) => Effect.succeed(`left:${input}`) })
-      const right = Task.fn({ id: Id.node("fanout-right"), run: (input: number) => Effect.succeed(`right:${input}`) })
+      const left = Task.fn({ id: Id.task("fanout-left"), run: (input: number) => Effect.succeed(`left:${input}`) })
+      const right = Task.fn({ id: Id.task("fanout-right"), run: (input: number) => Effect.succeed(`right:${input}`) })
       const workflow = trigger.then(source).fanout({ left, right })
       const scheduler = await createDurableScheduler({ workflows: [workflow], database, observer })
       const response = await createTriggerApp(scheduler).fetch(
         new Request("http://e2e.test/hooks/fanout-input", { method: "POST", body: JSON.stringify({ value: 7 }) }),
       )
-      expect(response.status).toBe(200)
+      expect(response.status).toBe(202)
       const payload = (await response.json()) as { runs: readonly [{ id: string; status: string }] }
-      expect(payload.runs[0]?.status).toBe("completed")
+      await waitForRun(database, payload.runs[0]!.id)
       const nodes = await database.getNodes?.(Id.runFrom(payload.runs[0]!.id))
       expect(nodes?.filter((node) => node.status === "completed").map((node) => node.input)).toEqual(
         expect.arrayContaining([7]),
@@ -54,7 +54,7 @@ describe("local durable workflow E2E", () => {
       const trigger = Triggers.webhook<number>({ id: Id.trigger("restart-input"), path: "/hooks/restart-input" })
       let executions = 0
       const task = Task.fn({
-        id: Id.node("restart-task"),
+        id: Id.task("restart-task"),
         run: (input: number) => {
           executions += 1
           return Effect.succeed(input + 1)
@@ -66,7 +66,7 @@ describe("local durable workflow E2E", () => {
         new Request("http://e2e.test/hooks/restart-input", { method: "POST", body: "41" }),
       )
       const payload = (await response.json()) as { runs: readonly [{ id: string; status: string }] }
-      expect(payload.runs[0]?.status).toBe("completed")
+      await waitForRun(database, payload.runs[0]!.id)
       expect(executions).toBe(1)
       await createDurableScheduler({ workflows: [workflow], database, observer })
       expect(
@@ -88,11 +88,11 @@ describe("local durable workflow E2E", () => {
         path: "/hooks/e2e-input",
       })
       const double = Task.fn({
-        id: Id.node("e2e-double"),
+        id: Id.task("e2e-double"),
         run: (input: { value: number }) => Effect.succeed({ value: input.value * 2 }),
       })
       const format = Task.fn({
-        id: Id.node("e2e-format"),
+        id: Id.task("e2e-format"),
         run: (input: { value: number }) => Effect.succeed(`result:${input.value}`),
       })
       const workflow = trigger.then(double).then(format)
@@ -106,9 +106,9 @@ describe("local durable workflow E2E", () => {
           body: JSON.stringify({ value: 21 }),
         }),
       )
-      expect(response.status).toBe(200)
-      const payload = (await response.json()) as { runs: readonly [{ id: string; status: string; output: string }] }
-      expect(payload.runs[0]).toMatchObject({ status: "completed", output: "result:42" })
+      expect(response.status).toBe(202)
+      const payload = (await response.json()) as { runs: readonly [{ id: string; status: string; output?: string }] }
+      await waitForRun(database, payload.runs[0]!.id)
 
       const runId = Id.runFrom(payload.runs[0]!.id)
       const run = await database.getRun?.(runId)
@@ -133,3 +133,15 @@ describe("local durable workflow E2E", () => {
     }
   })
 })
+
+async function waitForRun(database: ReturnType<typeof createLocalSchedulerDatabase>, id: string): Promise<void> {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const run = await database.getRun?.(Id.runFrom(id))
+    if (run?.status === "completed" || run?.status === "failed") {
+      if (run.status === "failed") throw new Error(`Run ${id} failed`)
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1))
+  }
+  throw new Error(`Run ${id} did not complete`)
+}

@@ -27,7 +27,7 @@ function makeReviewTask(env: Env) {
   const endpoint = createAgentEndpoint(env.REVIEW_AGENT)
 
   return Task.agent<MergeRequest, Review>({
-    id: Id.node("review-merge-request"),
+    id: Id.task("review-merge-request"),
     endpoint,
     instructions: "Review this merge request using the team's configured tools.",
   })

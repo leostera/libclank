@@ -146,7 +146,7 @@ For convenience-only behavior:
 
 ```ts
 openFile({
-  id: Id.node("open-report"),
+  id: Id.task("open-report"),
   required: false,
 })
 ```

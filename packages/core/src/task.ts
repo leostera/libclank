@@ -1,9 +1,9 @@
 import { Node, type EffectNode, type NodeDefinition, type NodeFunction, type RuntimeSchema } from "./node.js"
-import type { NodeId } from "./id.js"
+import { Id, type NodeId, type TaskId } from "./id.js"
 
 export type Task<Input, Output> = Node<Input, Output>
 export type TaskOptions<Input, Output> = {
-  readonly id: NodeId
+  readonly id: TaskId | NodeId
   readonly run: NodeFunction<Input, Output>
   readonly description?: string
   readonly version?: string
@@ -18,11 +18,13 @@ export type TaskOptions<Input, Output> = {
 
 export const Task = {
   fn<Input, Output>(options: TaskOptions<Input, Output>): Task<Input, Output> {
-    return new Node(options.id, options.run, [], true, definition(options), [], [], options.input, options.output)
+    const nodeId = graphNodeId(options.id)
+    return new Node(nodeId, options.run, [], true, definition(options, nodeId), [], [], options.input, options.output)
   },
 
   effect<Input>(options: TaskOptions<Input, void>): EffectNode<Input> {
-    return new Node(options.id, options.run, [], true, definition(options), [], [], options.input, options.output)
+    const nodeId = graphNodeId(options.id)
+    return new Node(nodeId, options.run, [], true, definition(options, nodeId), [], [], options.input, options.output)
   },
 }
 
@@ -49,15 +51,25 @@ export const createTaskRegistry = (tasks: readonly Node<unknown, unknown>[]): Ta
   }
 }
 
-function definition<Input, Output>(options: TaskOptions<Input, Output>): NodeDefinition {
+function definition<Input, Output>(options: TaskOptions<Input, Output>, nodeId: NodeId): NodeDefinition {
+  const taskId = normalizeTaskId(options.id)
   return {
-    id: options.id,
-    stepId: options.id,
-    description: options.description ?? options.id,
+    id: nodeId,
+    stepId: nodeId,
+    taskId,
+    description: options.description ?? Id.name(taskId),
     version: options.version ?? "1",
     cache: options.cache ?? "never",
     ...(options.executor === undefined ? {} : { executor: options.executor }),
     dependencies: [],
     retry: options.retry ?? { maxAttempts: 1, backoffMs: 1000 },
   }
+}
+
+function graphNodeId(id: TaskId | NodeId): NodeId {
+  return Id.parse(id).kind === "node" ? (id as NodeId) : Id.node()
+}
+
+function normalizeTaskId(id: TaskId | NodeId): TaskId {
+  return Id.parse(id).kind === "task" ? (id as TaskId) : Id.task(Id.name(id))
 }

@@ -8,13 +8,15 @@ export const Triggers = {
     path?: string
     decode?: (request: Request) => Output | Promise<Output>
   }): Trigger<Output> {
+    const nodeId = Id.node()
     const definition: TriggerDefinition<Output> = {
       ...options,
+      nodeId,
       kind: "webhook",
       path: options.path ?? `/hooks/${Id.name(options.id)}`,
     }
     return new Node(
-      Id.nodeFromTrigger(options.id),
+      nodeId,
       (_, context) => {
         const value = context?.triggerValues.get(options.id)
         return value === undefined
@@ -26,14 +28,21 @@ export const Triggers = {
   },
 
   manual(options: { id: TriggerId }): Trigger<void> {
-    const definition: TriggerDefinition<void> = { id: options.id, kind: "manual", path: `/run/${Id.name(options.id)}` }
-    return new Node(Id.nodeFromTrigger(options.id), () => Effect.succeed(undefined), [definition])
+    const nodeId = Id.node()
+    const definition: TriggerDefinition<void> = {
+      id: options.id,
+      nodeId,
+      kind: "manual",
+      path: `/run/${Id.name(options.id)}`,
+    }
+    return new Node(nodeId, () => Effect.succeed(undefined), [definition])
   },
 
   cron<Output>(options: { id: TriggerId; schedule: string; value: Output }): Trigger<Output> {
-    const definition: TriggerDefinition<Output> = { ...options, kind: "cron" }
+    const nodeId = Id.node()
+    const definition: TriggerDefinition<Output> = { ...options, nodeId, kind: "cron" }
     return new Node(
-      Id.nodeFromTrigger(options.id),
+      nodeId,
       (_, context) => Effect.succeed((context?.triggerValues.get(options.id) ?? options.value) as Output),
       [definition],
     )

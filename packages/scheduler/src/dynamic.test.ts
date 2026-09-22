@@ -15,8 +15,8 @@ describe("materializeDynamicSteps", () => {
       updatedAt: 0,
     }
     const template = {
-      id: Id.node("summarize"),
-      stepId: Id.node("summarize"),
+      id: Id.node(),
+      stepId: Id.node(),
       description: "Summarize",
       version: "1",
       cache: "by-input" as const,

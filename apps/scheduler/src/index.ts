@@ -20,8 +20,8 @@ type EventRow = {
   readonly created_at: number
 }
 
-const workflowId = Id.node("review-open-mrs")
-const agentNodeId = Id.node("review-open-mrs/agent")
+const workflowId = Id.workflow("review-open-mrs")
+const agentNodeId = Id.node()
 
 /** One durable, SQLite-backed coordinator for exactly one workflow run. */
 export class WorkflowRun implements DurableObject {

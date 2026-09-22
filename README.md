@@ -39,17 +39,17 @@ const urlReceived = Triggers.webhook<{ url: string }>({
 })
 
 const fetchTitle = Task.fn<{ url: string }, { title: string }>({
-  id: Id.node("fetch-title"),
+  id: Id.task("fetch-title"),
   run: ({ url }) => Effect.succeed({ title: `Title for ${url}` }),
 })
 
 const workflow = urlReceived.then(fetchTitle).fanout({
   summary: Task.fn({
-    id: Id.node("write-summary"),
+    id: Id.task("write-summary"),
     run: ({ title }: { title: string }) => Effect.succeed(title.toLowerCase()),
   }),
   keywords: Task.fn({
-    id: Id.node("extract-keywords"),
+    id: Id.task("extract-keywords"),
     run: ({ title }: { title: string }) => Effect.succeed(title.split(" ")),
   }),
 })

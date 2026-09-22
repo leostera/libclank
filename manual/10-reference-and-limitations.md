@@ -19,7 +19,7 @@ This page is a practical map of the APIs available to workflow authors today. It
 ```ts
 import { Id } from "@libclank/core"
 
-const nodeId = Id.node("fetch-markdown")
+const nodeId = Id.task("fetch-markdown")
 const triggerId = Id.trigger("ingest-url")
 const workflowId = Id.workflow("daily-digest")
 const runId = Id.run()
@@ -28,14 +28,14 @@ const runId = Id.run()
 IDs are opaque TypeScript types and canonicalize to URI-like values:
 
 ```text
-libclank://node/fetch-markdown
-libclank://trigger/ingest-url
+clank:task:fetch-markdown
+clank:trigger:ingest-url
 ```
 
 Use names, not hand-written URI casts. IDs may contain slash-separated stable namespaces:
 
 ```ts
-Id.node("billing/send-receipt")
+Id.task("billing/send-receipt")
 ```
 
 `.` and `..` path segments are rejected.
@@ -115,7 +115,7 @@ Task functions may inspect execution context:
 
 ```ts
 const task = Task.fn<Input, Output>({
-  id: Id.node("example"),
+  id: Id.task("example"),
   run: (input, context) => {
     const runId = context?.runId
     const nodeId = context?.nodeId

@@ -21,7 +21,7 @@ describe("local artifacts", () => {
     const ref = await artifacts.put({ name: "summary.md", contentType: "text/markdown", body: "# Hello" })
 
     expect(ref.digest).toMatch(/^sha256:/)
-    expect(ref.id).toContain("libclank://artifact/")
+    expect(ref.id).toMatch(/^clank:artifact:/)
     expect(new TextDecoder().decode(await artifacts.get(ref))).toBe("# Hello")
   })
 

@@ -1,4 +1,10 @@
-import { Id, type NodeDefinition, type TriggerDefinition, type TriggerId, type WorkflowId } from "@libclank/core"
+import {
+  type NodeDefinition,
+  type NodeId,
+  type TriggerDefinition,
+  type TriggerId,
+  type WorkflowId,
+} from "@libclank/core"
 
 export type WorkflowDefinitionHash = `sha256:${string}`
 
@@ -26,56 +32,43 @@ export interface WorkflowManifestSource {
 
 export interface PersistedTriggerDefinition {
   readonly id: TriggerId
+  readonly nodeId?: NodeId
   readonly kind: TriggerDefinition["kind"]
   readonly path?: string
   readonly schedule?: string
 }
 
-function isComposition(id: string, task?: NodeDefinition): boolean {
-  if (task?.kind === "fanout") return false
-  return /\/(then|tap|map|map-each|forEach|fanout)$/.test(id)
+function isComposition(_id: string, task?: NodeDefinition): boolean {
+  return task?.kind === "composition" || task?.composition !== undefined
 }
 
+/** Compiles explicit composition metadata; graph behavior is never inferred from an ID suffix. */
 function compositionEdges(tasks: readonly NodeDefinition[]): WorkflowManifestEdge[] {
-  const byId = new Map<string, NodeDefinition>()
-  for (const task of tasks) if (!byId.has(task.id)) byId.set(task.id, task)
-  const output = (id: string): string => {
+  const byId = new Map(tasks.map((task) => [task.stepId, task]))
+  const known = new Set(tasks.filter((task) => !isComposition(task.id, task)).map((task) => task.stepId))
+  const output = (id: NodeDefinition["stepId"], seen = new Set<string>()): NodeDefinition["stepId"] => {
+    if (seen.has(id)) throw new Error(`Composition graph contains a cycle at ${id}`)
     const task = byId.get(id)
-    if (task && /\/tap$/.test(id) && task.dependencies[1]) {
-      const composedOutput = tasks.find(
-        (candidate) => candidate.stepId === Id.childNode(task.stepId, Id.name(task.dependencies[1]!)),
-      )
-      return composedOutput?.stepId ?? task.stepId
-    }
-    return task && /\/then$/.test(id) && task.dependencies[1] ? output(task.dependencies[1]) : (task?.stepId ?? id)
-  }
-  const input = (id: string): string => {
-    const task = byId.get(id)
-    return task && /(then|tap)$/.test(id) && task.dependencies[0] ? input(task.dependencies[0]) : (task?.stepId ?? id)
-  }
-  const tapOutput = (task: NodeDefinition): string => {
-    const dependency = task.dependencies[1]
-    if (!dependency) return task.stepId
-    return (
-      tasks.find((candidate) => candidate.stepId === Id.childNode(task.stepId, Id.name(dependency)))?.stepId ??
-      task.stepId
-    )
+    if (!task || task.kind !== "composition") return id
+    const next = task.composition === "then" ? task.dependencies[1] : task.dependencies[0]
+    return next === undefined ? id : output(next, new Set(seen).add(id))
   }
   return tasks.flatMap((task) => {
-    if ((task.id.endsWith("/then") || task.id.endsWith("/tap")) && task.dependencies[0] && task.dependencies[1])
-      return [
-        {
-          from: output(task.dependencies[0]),
-          to: task.id.endsWith("/tap") ? tapOutput(task) : input(task.dependencies[1]),
-          kind: "dependency" as const,
-        },
-      ]
-    if ((task.id.endsWith("/fanout") || task.kind === "fanout") && task.dependencies[0])
-      return task.kind === "fanout"
-        ? [{ from: output(task.dependencies[0]), to: task.stepId, kind: "dependency" as const }]
-        : task.dependencies
-            .slice(1)
-            .map((branch) => ({ from: output(task.dependencies[0]!), to: input(branch), kind: "dependency" as const }))
+    const [source, target, ...branches] = task.dependencies
+    if (!source) return []
+    if (task.composition === "then" || task.composition === "tap") {
+      if (target === undefined) return []
+      const from = output(source)
+      const to = output(target)
+      return known.has(from) && known.has(to) ? [{ from, to, kind: "dependency" as const }] : []
+    }
+    if (task.composition === "fanout" || task.kind === "fanout") {
+      const from = output(source)
+      return [target, ...branches]
+        .filter((branch): branch is NodeDefinition["stepId"] => branch !== undefined)
+        .map((branch) => ({ from, to: output(branch), kind: "dependency" as const }))
+        .filter((edge) => known.has(edge.from) && known.has(edge.to))
+    }
     return []
   })
 }
@@ -85,10 +78,11 @@ export const createWorkflowManifest = async (source: WorkflowManifestSource): Pr
   const allTasks = [...new Map(source.tasks.map((task) => [task.stepId, task])).values()]
   const tasks = allTasks
     .filter((task) => !isComposition(task.id, task))
-    .sort((left, right) => left.id.localeCompare(right.id))
+    .sort((left, right) => left.stepId.localeCompare(right.stepId))
   const triggers = (source.triggers ?? [])
-    .map(({ id, kind, path, schedule }) => ({
+    .map(({ id, nodeId, kind, path, schedule }) => ({
       id,
+      ...(nodeId === undefined ? {} : { nodeId }),
       kind,
       ...(path === undefined ? {} : { path }),
       ...(schedule === undefined ? {} : { schedule }),
@@ -96,7 +90,9 @@ export const createWorkflowManifest = async (source: WorkflowManifestSource): Pr
     .sort((left, right) => left.id.localeCompare(right.id))
   const edges: WorkflowManifestEdge[] = [
     ...compositionEdges(allTasks),
-    ...triggers.map((trigger) => ({ from: trigger.id, to: Id.nodeFromTrigger(trigger.id), kind: "trigger" as const })),
+    ...triggers.flatMap((trigger) =>
+      trigger.nodeId === undefined ? [] : [{ from: trigger.id, to: trigger.nodeId, kind: "trigger" as const }],
+    ),
   ]
   const canonical = JSON.stringify({ schemaVersion: 1, workflowId: source.workflowId, tasks, triggers, edges })
   const bytes = new TextEncoder().encode(canonical)

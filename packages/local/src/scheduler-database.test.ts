@@ -16,7 +16,7 @@ describe("local scheduler database", () => {
     const path = join(await mkdtemp(join(tmpdir(), "libclank-scheduler-")), "scheduler.sqlite")
     paths.push(path)
     const database = createLocalSchedulerDatabase(path)
-    const task = Id.node("test-task")
+    const task = Id.node()
     const workflow = await createWorkflowManifest({
       workflowId: Id.workflow("test"),
       tasks: [

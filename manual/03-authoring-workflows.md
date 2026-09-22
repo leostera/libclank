@@ -19,7 +19,7 @@ type ParseInput = Schema.Schema.Type<typeof ParseInput>
 type Parsed = Schema.Schema.Type<typeof Parsed>
 
 const parse = Task.fn<ParseInput, Parsed>({
-  id: Id.node("parse-text"),
+  id: Id.task("parse-text"),
   description: "Split text into words",
   version: "1",
   input: ParseInput,
@@ -34,7 +34,7 @@ Use `Task.effect` when the next workflow value should be `void`:
 
 ```ts
 const audit = Task.effect<{ message: string }>({
-  id: Id.node("write-audit-record"),
+  id: Id.task("write-audit-record"),
   run: ({ message }) =>
     Effect.tryPromise({
       try: () => writeAuditRecord(message),
@@ -51,7 +51,7 @@ Durable inputs come from JSON, a database, another task, or an external agent. A
 
 ```ts
 const enrich = Task.fn<Input, Output>({
-  id: Id.node("enrich"),
+  id: Id.task("enrich"),
   input: InputSchema,
   output: OutputSchema,
   run: (input) => doEnrichment(input),
@@ -137,7 +137,7 @@ const urls = discover.map((links) => links.map((link) => link.url))
 
 ```ts
 const selectUrls = Task.fn<readonly Link[], readonly string[]>({
-  id: Id.node("select-urls"),
+  id: Id.task("select-urls"),
   run: (links) => Effect.succeed(links.map((link) => link.url)),
 })
 
@@ -207,7 +207,7 @@ Tasks can declare metadata:
 
 ```ts
 const fetch = Task.fn<Input, Output>({
-  id: Id.node("fetch"),
+  id: Id.task("fetch"),
   cache: "by-input",
   retry: { maxAttempts: 3, backoffMs: 1_000 },
   run: fetchEffect,
@@ -224,7 +224,7 @@ Let failures remain typed Effect failures where possible:
 
 ```ts
 const fetch = Task.fn<Request, Response>({
-  id: Id.node("fetch"),
+  id: Id.task("fetch"),
   run: (request) =>
     Effect.tryPromise({
       try: () => fetchRemote(request),

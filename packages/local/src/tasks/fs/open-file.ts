@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process"
 import { Effect } from "effect"
-import { Task, type NodeId } from "@libclank/core"
+import { Task, type TaskId } from "@libclank/core"
 
 export interface LocalFile {
   readonly path: string
@@ -10,7 +10,7 @@ export interface LocalFile {
  * A local-only effect task that opens a file in the operating system's
  * preferred application (`open`, `start`, or `xdg-open`).
  */
-export const openFile = (options: { id: NodeId; required?: boolean }) =>
+export const openFile = (options: { id: TaskId; required?: boolean }) =>
   Task.effect<LocalFile>({
     id: options.id,
     run: (file) => {

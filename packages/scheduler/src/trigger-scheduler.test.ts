@@ -12,7 +12,7 @@ describe("createDurableScheduler", () => {
   it("persists the run lifecycle around a triggered workflow", async () => {
     const trigger = Triggers.webhook<{ value: number }>({ id: Id.trigger("test-hook") })
     const workflow = trigger.then(
-      Task.fn({ id: Id.node("double"), description: "Double", run: (input) => Effect.succeed(input.value * 2) }),
+      Task.fn({ id: Id.node(), description: "Double", run: (input) => Effect.succeed(input.value * 2) }),
     )
     const database = new RecordingDatabase()
     const scheduler = await createDurableScheduler({

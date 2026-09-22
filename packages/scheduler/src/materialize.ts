@@ -1,3 +1,4 @@
+import { Id } from "@libclank/core"
 import type { NodeInstanceRecord, WorkflowRunRecord } from "./run-state.js"
 import type { SchedulerDatabase } from "./database.js"
 import type { WorkflowManifest } from "./manifest.js"
@@ -16,7 +17,7 @@ export const materializeWorkflowRun = async (options: {
       .map((edge) => edge.to),
   )
   const instances = tasks.map((task) => ({
-    id: `${options.run.id}:${task.stepId}`,
+    id: Id.nodeInstance(),
     runId: options.run.id,
     nodeId: task.stepId,
     status: dependencyTargets.has(task.stepId) ? ("pending" as const) : ("ready" as const),

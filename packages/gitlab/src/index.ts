@@ -96,7 +96,7 @@ export const createGitLabTasks = (options: GitLabOptions) => {
   }
 
   const listOpenMergeRequests: TaskNode<void, MergeRequestEvent[]> = Task.fn({
-    id: Id.node("gitlab.list-open-merge-requests"),
+    id: Id.task("gitlab.list-open-merge-requests"),
     run: () =>
       Effect.tryPromise(async () => {
         if (!options.projectId) throw new Error("GitLab projectId is required to list open merge requests")
@@ -115,7 +115,7 @@ export const createGitLabTasks = (options: GitLabOptions) => {
   })
 
   const getMergeRequestContext: TaskNode<MergeRequestEvent, MergeRequestContext> = Task.fn({
-    id: Id.node("gitlab.get-merge-request-context"),
+    id: Id.task("gitlab.get-merge-request-context"),
     run: (event) =>
       Effect.tryPromise(async () => {
         const project = encodeURIComponent(event.projectId)
@@ -137,7 +137,7 @@ export const createGitLabTasks = (options: GitLabOptions) => {
   })
 
   const createReviewComment: TaskNode<{ event: MergeRequestEvent; review: GitLabReview }, void> = Task.effect({
-    id: Id.node("gitlab.post-review"),
+    id: Id.task("gitlab.post-review"),
     run: ({ event, review }) =>
       Effect.tryPromise(async () => {
         const project = encodeURIComponent(event.projectId)

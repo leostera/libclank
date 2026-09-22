@@ -41,12 +41,12 @@ const summarizeUrl = Triggers.webhook<SummaryRequest>({
 })
 
 const summarize = Task.agent<SummaryRequest, SummaryRequest>({
-  id: Id.node("summarize-website"),
+  id: Id.task("summarize-website"),
   endpoint: pi,
   instructions: "Summarize the requested website and write the requested Markdown artifact.",
 })
 
-const openSummary = openFile({ id: Id.node("open-summary") })
+const openSummary = openFile({ id: Id.task("open-summary") })
 
 const workflow = summarizeUrl.then(summarize).tap(openSummary)
 const scheduler = createScheduler({ workflows: [workflow], observer: createConsoleObserver() })

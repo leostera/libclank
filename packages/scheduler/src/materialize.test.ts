@@ -7,8 +7,8 @@ import type { NodeInstanceRecord, WorkflowRunRecord } from "./run-state.js"
 
 describe("materializeWorkflowRun", () => {
   it("persists one instance and dependency row per static step", async () => {
-    const first = Id.node("first")
-    const second = Id.node("second")
+    const first = Id.node()
+    const second = Id.node()
     const runId = Id.run()
     const manifest = {
       schemaVersion: 1,
@@ -29,8 +29,9 @@ describe("materializeWorkflowRun", () => {
     }
     const instances = await materializeWorkflowRun({ database, run, manifest, input: { value: 1 } })
     expect(instances).toHaveLength(2)
-    expect(database.nodes.map((node) => node.id)).toEqual([`${runId}:${first}`, `${runId}:${second}`])
-    expect(database.dependencies).toEqual([[`${runId}:${second}`, `${runId}:${first}`]])
+    expect(database.nodes.map((node) => node.id)).toEqual(instances.map((instance) => instance.id))
+    expect(database.nodes.every((node) => /^clank:node-instance:[0-9a-f-]{36}$/.test(node.id))).toBe(true)
+    expect(database.dependencies).toEqual([[instances[1]!.id, instances[0]!.id]])
   })
 })
 

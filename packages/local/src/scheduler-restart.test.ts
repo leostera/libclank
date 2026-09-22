@@ -18,7 +18,7 @@ describe("local scheduler restart recovery", () => {
     directories.push(directory)
     const path = join(directory, "scheduler.sqlite")
     const runId = Id.run()
-    const nodeId = Id.node("restartable")
+    const nodeId = Id.node()
     let firstProcess = true
     const task = Task.fn({
       id: nodeId,

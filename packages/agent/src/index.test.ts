@@ -7,7 +7,7 @@ describe("Task.agent", () => {
   it("forwards the durable scheduler attempt and declared retry policy", async () => {
     let request: AgentTaskRequest<number> | undefined
     const task = Task.agent<number, string>({
-      id: Id.node("agent-attempt"),
+      id: Id.node(),
       instructions: "Summarize the input.",
       retry: { maxAttempts: 2, backoffMs: 25 },
       endpoint: {

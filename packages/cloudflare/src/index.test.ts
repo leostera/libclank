@@ -13,7 +13,7 @@ describe("createAgentEndpoint", () => {
       endpoint.run({
         version: 1,
         runId: Id.run(),
-        nodeId: Id.node("agent"),
+        nodeId: Id.node(),
         nodeInstanceId: "run:agent",
         executionToken: "run:agent:1",
         attempt: 1,
