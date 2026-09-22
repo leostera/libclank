@@ -1,5 +1,6 @@
 export * from "./durable-scheduler.js"
 export * from "./clanker.js"
+export * from "./dashboard.js"
 
 import { Hono } from "hono"
 import { Effect } from "effect"
