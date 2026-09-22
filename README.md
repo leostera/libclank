@@ -25,6 +25,55 @@ Start with the [LibClank Manual](manual/README.md):
 - [Cloudflare and deployment](manual/08-cloudflare-and-deployment.md)
 - [Reference and limitations](manual/10-reference-and-limitations.md)
 
+## What LibClank code looks like
+
+A workflow is ordinary typed TypeScript. A trigger produces input, named tasks transform it, and composition describes the graph:
+
+```ts
+import { Effect } from "effect"
+import { Id, Task, Triggers } from "@libclank/core"
+
+const urlReceived = Triggers.webhook<{ url: string }>({
+  id: Id.trigger("url-received"),
+  path: "/hooks/url",
+})
+
+const fetchTitle = Task.fn<{ url: string }, { title: string }>({
+  id: Id.node("fetch-title"),
+  run: ({ url }) => Effect.succeed({ title: `Title for ${url}` }),
+})
+
+const workflow = urlReceived.then(fetchTitle).fanout({
+  summary: Task.fn({
+    id: Id.node("write-summary"),
+    run: ({ title }: { title: string }) => Effect.succeed(title.toLowerCase()),
+  }),
+  keywords: Task.fn({
+    id: Id.node("extract-keywords"),
+    run: ({ title }: { title: string }) => Effect.succeed(title.split(" ")),
+  }),
+})
+```
+
+Run that same workflow durably with local SQLite and a Hono trigger app:
+
+```ts
+import { createTriggerApp } from "@libclank/cloudflare"
+import { SchedulerObservers } from "@libclank/core"
+import { createLocalSchedulerDatabase } from "@libclank/local"
+import { createDurableScheduler } from "@libclank/scheduler"
+
+const scheduler = await createDurableScheduler({
+  workflows: [workflow],
+  database: createLocalSchedulerDatabase(),
+  observer: SchedulerObservers.noop,
+})
+
+Bun.serve({ port: 8789, fetch: createTriggerApp(scheduler).fetch })
+```
+
+The scheduler persists workflow metadata, node instances, inputs, outputs, attempts, and events in `.clank/scheduler.sqlite`. See [Getting started](manual/01-getting-started.md) for schemas, validation, and a complete executable example.
+
 ## Try an example
 
 LibClank uses Bun 1.3.11 (declared in `package.json` and locked by `bun.lock`).
