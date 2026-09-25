@@ -28,13 +28,13 @@ The example webhook is available at \`POST /api/hello\`. The starter uses LibCla
 
 ## Project layout
 
-- \`src/agents/\` — application-owned AgentEndpoint adapters and agent-task helpers.
-- \`src/tasks/\` — reusable units of work.
-- \`src/triggers/\` — webhook, manual, and scheduled workflow inputs.
-- \`src/workflows/\` — workflow compositions and workflow registry.
+- \`agents/\` — application-owned AgentEndpoint adapters and agent-task helpers.
+- \`tasks/\` — reusable units of work.
+- \`triggers/\` — webhook, manual, and scheduled workflow inputs.
+- \`workflows/\` — workflow compositions and workflow registry.
 - \`src/worker.ts\` — Cloudflare Worker entrypoint and runtime wiring.
 
-Add new files in those directories, then register each workflow in \`src/workflows/index.ts\`.
+Add new files in those root-level directories, then register each workflow in \`workflows/index.ts\`.
 
 ## Commands
 
@@ -46,10 +46,10 @@ Add new files in those directories, then register each workflow in \`src/workflo
 
 Keep credentials in Worker secrets or bindings, not in source control. External side effects may be retried; make them idempotent where needed.
 `,
-  "src/agents/index.ts": `/** Application-owned agent adapters and helpers live in this directory. */
+  "agents/index.ts": `/** Application-owned agent adapters and helpers live in this directory. */
 export type { AgentEndpoint, AgentTaskRequest, AgentTaskResponse } from "libclank/agent"
 `,
-  "src/agents/assistant.ts": `import { Task, type AgentEndpoint } from "libclank/agent"
+  "agents/assistant.ts": `import { Task, type AgentEndpoint } from "libclank/agent"
 import { Id } from "libclank/core"
 
 export interface AssistantInput {
@@ -68,7 +68,7 @@ export const createAssistantTask = (endpoint: AgentEndpoint) =>
     endpoint,
   })
 `,
-  "src/tasks/say-hello.ts": `import { Effect } from "effect"
+  "tasks/say-hello.ts": `import { Effect } from "effect"
 import { Id, Task } from "libclank/core"
 import type { HelloInput } from "../triggers/hello.js"
 
@@ -82,7 +82,7 @@ export const sayHello = Task.fn<HelloInput, HelloOutput>({
   run: ({ name }) => Effect.succeed({ message: \`Hello, \${name?.trim() || "friend"}!\` }),
 })
 `,
-  "src/triggers/hello.ts": `import { Id, Triggers } from "libclank/core"
+  "triggers/hello.ts": `import { Id, Triggers } from "libclank/core"
 
 export interface HelloInput {
   readonly name?: string
@@ -94,18 +94,18 @@ export const helloReceived = Triggers.webhook<HelloInput>({
   decode: async (request) => (await request.json()) as HelloInput,
 })
 `,
-  "src/workflows/hello.ts": `import { sayHello } from "../tasks/say-hello.js"
+  "workflows/hello.ts": `import { sayHello } from "../tasks/say-hello.js"
 import { helloReceived } from "../triggers/hello.js"
 
 export const helloWorkflow = helloReceived.then(sayHello)
 `,
-  "src/workflows/index.ts": `import { helloWorkflow } from "./hello.js"
+  "workflows/index.ts": `import { helloWorkflow } from "./hello.js"
 
 export const workflows = [helloWorkflow] as const
 `,
   "src/worker.ts": `import { createTriggerApp } from "libclank/cloudflare"
 import { createScheduler, SchedulerObservers } from "libclank/core"
-import { workflows } from "./workflows/index.js"
+import { workflows } from "../workflows/index.js"
 
 const api = createTriggerApp(
   createScheduler({
@@ -177,7 +177,7 @@ export default defineConfig({
 `,
 }
 
-const exampleWorkflowFiles = new Set(["src/tasks/say-hello.ts", "src/triggers/hello.ts", "src/workflows/hello.ts"])
+const exampleWorkflowFiles = new Set(["tasks/say-hello.ts", "triggers/hello.ts", "workflows/hello.ts"])
 
 const defaultScripts = {
   dev: "wrangler dev",
@@ -197,7 +197,7 @@ export function createProject(options: NewProjectOptions): NewProjectResult {
   }
   const created: string[] = []
   const skipped: string[] = []
-  const hasWorkflowRegistry = existsSync(join(directory, "src/workflows/index.ts"))
+  const hasWorkflowRegistry = existsSync(join(directory, "workflows/index.ts"))
 
   mkdirSync(directory, { recursive: true })
 
