@@ -74,6 +74,25 @@ Bun.serve({ port: 8789, fetch: createTriggerApp(scheduler).fetch })
 
 The scheduler persists workflow metadata, node instances, inputs, outputs, attempts, and events in `.clank/scheduler.sqlite`. See [Getting started](manual/01-getting-started.md) for schemas, validation, and a complete executable example.
 
+## Install LibClank from GitHub
+
+LibClank is a private GitHub-hosted JavaScript package. Install a versioned tag over SSH (you need GitHub SSH access to `leostera/libclank`):
+
+```bash
+bun add "git+ssh://git@github.com/leostera/libclank.git#v0.1.0"
+```
+
+Import the supported package entry points explicitly:
+
+```ts
+import { Id, Task, Triggers } from "libclank/core"
+import { createTriggerApp } from "libclank/cloudflare"
+```
+
+The Git dependency's `prepare` script builds the distributable workspace packages before Bun installs them. Keep consumer lockfiles committed so deployments stay pinned to the resolved commit behind the tag. React and React DOM are peer dependencies for `libclank/ui`; install them in apps that use that entry point.
+
+LibClank requires Bun 1.3.11 or newer for dependency preparation and workspace builds. For contributors developing both repositories, a local `file:../libclank` dependency remains useful; applications intended to install independently should use a version tag as above.
+
 ## Try an example
 
 LibClank uses Bun 1.3.11 (declared in `package.json` and locked by `bun.lock`).
