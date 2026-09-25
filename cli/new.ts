@@ -177,6 +177,8 @@ export default defineConfig({
 `,
 }
 
+const exampleWorkflowFiles = new Set(["src/tasks/say-hello.ts", "src/triggers/hello.ts", "src/workflows/hello.ts"])
+
 const defaultScripts = {
   dev: "wrangler dev",
   deploy: "wrangler deploy",
@@ -195,11 +197,16 @@ export function createProject(options: NewProjectOptions): NewProjectResult {
   }
   const created: string[] = []
   const skipped: string[] = []
+  const hasWorkflowRegistry = existsSync(join(directory, "src/workflows/index.ts"))
 
   mkdirSync(directory, { recursive: true })
 
   for (const [relativePath, source] of Object.entries(files)) {
     const destination = join(directory, relativePath)
+    if (hasWorkflowRegistry && exampleWorkflowFiles.has(relativePath) && !existsSync(destination)) {
+      skipped.push(`${relativePath} (existing workflow registry)`)
+      continue
+    }
     if (existsSync(destination)) {
       skipped.push(relativePath)
       continue

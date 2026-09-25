@@ -13,7 +13,7 @@ afterEach(() => {
 describe("libclank new", () => {
   it("creates a Cloudflare project with agent, task, trigger, and workflow entry points", () => {
     const directory = temporaryDirectory()
-    const result = createProject({ directory, name: "My Example", version: "0.1.4" })
+    const result = createProject({ directory, name: "My Example", version: "0.1.5" })
     const packageJson = JSON.parse(readFileSync(join(directory, "package.json"), "utf8"))
 
     expect(result.created).toContain("src/agents/index.ts")
@@ -22,9 +22,23 @@ describe("libclank new", () => {
     expect(result.created).toContain("src/triggers/hello.ts")
     expect(result.created).toContain("src/workflows/hello.ts")
     expect(packageJson.name).toBe("my-example")
-    expect(packageJson.dependencies.libclank).toBe("git+https://github.com/leostera/libclank.git#v0.1.4")
+    expect(packageJson.dependencies.libclank).toBe("git+https://github.com/leostera/libclank.git#v0.1.5")
     expect(packageJson.trustedDependencies).toContain("libclank")
     expect(readFileSync(join(directory, "src/workflows/index.ts"), "utf8")).toContain("helloWorkflow")
+  })
+
+  it("does not add an unregistered hello example to a project with its own workflow registry", () => {
+    const directory = temporaryDirectory()
+    const registryPath = join(directory, "src/workflows/index.ts")
+    mkdirSync(join(directory, "src/workflows"), { recursive: true })
+    writeFileSync(registryPath, "export const workflows = [] as const\n")
+
+    const result = createProject({ directory, name: "existing-app", version: "0.1.5" })
+
+    expect(readFileSync(registryPath, "utf8")).toBe("export const workflows = [] as const\n")
+    expect(result.skipped).toContain("src/tasks/say-hello.ts (existing workflow registry)")
+    expect(result.skipped).toContain("src/triggers/hello.ts (existing workflow registry)")
+    expect(result.skipped).toContain("src/workflows/hello.ts (existing workflow registry)")
   })
 
   it("keeps existing application files and merges the manifest without replacing app configuration", () => {
@@ -40,7 +54,7 @@ describe("libclank new", () => {
       }),
     )
 
-    const result = createProject({ directory, name: "ignored-name", version: "0.1.4" })
+    const result = createProject({ directory, name: "ignored-name", version: "0.1.5" })
     const packageJson = JSON.parse(readFileSync(join(directory, "package.json"), "utf8"))
 
     expect(readFileSync(join(directory, "src/worker.ts"), "utf8")).toBe("// existing worker\n")
