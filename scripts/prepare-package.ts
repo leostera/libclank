@@ -6,7 +6,7 @@ const root = resolve(import.meta.dir, "..")
 const workspaceLinksReady = existsSync(resolve(root, "node_modules/@libclank/core"))
 
 if (!workspaceLinksReady) {
-  run("bun", ["install", "--ignore-scripts"])
+  run("bun", ["install", "--ignore-scripts", "--registry=https://registry.npmjs.org"])
 }
 
 run("bun", ["run", "build:package"])

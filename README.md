@@ -79,7 +79,7 @@ The scheduler persists workflow metadata, node instances, inputs, outputs, attem
 LibClank is a private GitHub-hosted JavaScript package. Install a versioned tag over SSH (you need GitHub SSH access to `leostera/libclank`):
 
 ```bash
-bun add --trust "git+ssh://git@github.com/leostera/libclank.git#v0.1.1"
+bun add --trust "git+ssh://git@github.com/leostera/libclank.git#v0.1.2"
 ```
 
 Import the supported package entry points explicitly:
