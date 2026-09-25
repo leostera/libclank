@@ -79,7 +79,7 @@ The scheduler persists workflow metadata, node instances, inputs, outputs, attem
 LibClank is available from its public GitHub repository. Install a versioned tag over HTTPS:
 
 ```bash
-bun add --trust "git+https://github.com/leostera/libclank.git#v0.1.6"
+bun add --trust "git+https://github.com/leostera/libclank.git#v0.1.7"
 ```
 
 Import the supported package entry points explicitly:
@@ -101,7 +101,7 @@ From an existing LibClank application, use the CLI to initialize a new Bun + Clo
 bun run libclank new ../my-worker
 ```
 
-The command adds missing files without replacing existing application code. It creates root-level `agents/`, `tasks/`, `triggers/`, and `workflows/` directories, including an Agent task factory that accepts an application-owned `AgentEndpoint`, plus a `src/worker.ts` entrypoint, starter tests, and Bun scripts. The example uses the eager in-memory scheduler; choose a durable runtime before relying on persisted runs.
+The command adds missing files without replacing existing application code. It creates root-level `agents/`, `tasks/`, `triggers/`, and `workflows/` directories, including an Agent task factory that accepts an application-owned `AgentEndpoint`, plus a `worker/` directory for the Worker entrypoint and Wrangler config, starter tests, and Bun scripts. The example uses the eager in-memory scheduler; choose a durable runtime before relying on persisted runs.
 
 ## Try an example
 

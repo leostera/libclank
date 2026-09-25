@@ -13,7 +13,7 @@ afterEach(() => {
 describe("libclank new", () => {
   it("creates a Cloudflare project with agent, task, trigger, and workflow entry points", () => {
     const directory = temporaryDirectory()
-    const result = createProject({ directory, name: "My Example", version: "0.1.6" })
+    const result = createProject({ directory, name: "My Example", version: "0.1.7" })
     const packageJson = JSON.parse(readFileSync(join(directory, "package.json"), "utf8"))
 
     expect(result.created).toContain("agents/index.ts")
@@ -21,9 +21,14 @@ describe("libclank new", () => {
     expect(result.created).toContain("tasks/say-hello.ts")
     expect(result.created).toContain("triggers/hello.ts")
     expect(result.created).toContain("workflows/hello.ts")
+    expect(result.created).toContain("worker/index.ts")
+    expect(result.created).toContain("worker/worker.test.ts")
+    expect(result.created).toContain("worker/wrangler.jsonc")
     expect(packageJson.name).toBe("my-example")
-    expect(packageJson.dependencies.libclank).toBe("git+https://github.com/leostera/libclank.git#v0.1.6")
+    expect(packageJson.dependencies.libclank).toBe("git+https://github.com/leostera/libclank.git#v0.1.7")
     expect(packageJson.trustedDependencies).toContain("libclank")
+    expect(packageJson.scripts.dev).toContain("worker/wrangler.jsonc")
+    expect(readFileSync(join(directory, "worker/wrangler.jsonc"), "utf8")).toContain('"main": "index.ts"')
     expect(readFileSync(join(directory, "workflows/index.ts"), "utf8")).toContain("helloWorkflow")
   })
 
@@ -33,7 +38,7 @@ describe("libclank new", () => {
     mkdirSync(join(directory, "workflows"), { recursive: true })
     writeFileSync(registryPath, "export const workflows = [] as const\n")
 
-    const result = createProject({ directory, name: "existing-app", version: "0.1.6" })
+    const result = createProject({ directory, name: "existing-app", version: "0.1.7" })
 
     expect(readFileSync(registryPath, "utf8")).toBe("export const workflows = [] as const\n")
     expect(result.skipped).toContain("tasks/say-hello.ts (existing workflow registry)")
@@ -43,8 +48,8 @@ describe("libclank new", () => {
 
   it("keeps existing application files and merges the manifest without replacing app configuration", () => {
     const directory = temporaryDirectory()
-    mkdirSync(join(directory, "src"), { recursive: true })
-    writeFileSync(join(directory, "src/worker.ts"), "// existing worker\n")
+    mkdirSync(join(directory, "worker"), { recursive: true })
+    writeFileSync(join(directory, "worker/index.ts"), "// existing worker\n")
     writeFileSync(
       join(directory, "package.json"),
       JSON.stringify({
@@ -54,11 +59,11 @@ describe("libclank new", () => {
       }),
     )
 
-    const result = createProject({ directory, name: "ignored-name", version: "0.1.6" })
+    const result = createProject({ directory, name: "ignored-name", version: "0.1.7" })
     const packageJson = JSON.parse(readFileSync(join(directory, "package.json"), "utf8"))
 
-    expect(readFileSync(join(directory, "src/worker.ts"), "utf8")).toBe("// existing worker\n")
-    expect(result.skipped).toContain("src/worker.ts")
+    expect(readFileSync(join(directory, "worker/index.ts"), "utf8")).toBe("// existing worker\n")
+    expect(result.skipped).toContain("worker/index.ts")
     expect(packageJson.name).toBe("existing-app")
     expect(packageJson.dependencies.libclank).toBe("file:../libclank")
     expect(packageJson.dependencies.vite).toBe("^8.0.0")

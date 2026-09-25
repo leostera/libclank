@@ -32,7 +32,7 @@ The example webhook is available at \`POST /api/hello\`. The starter uses LibCla
 - \`tasks/\` — reusable units of work.
 - \`triggers/\` — webhook, manual, and scheduled workflow inputs.
 - \`workflows/\` — workflow compositions and workflow registry.
-- \`src/worker.ts\` — Cloudflare Worker entrypoint and runtime wiring.
+- \`worker/\` — Worker entrypoint, Wrangler config, tests, and generated binding types.
 
 Add new files in those root-level directories, then register each workflow in \`workflows/index.ts\`.
 
@@ -103,7 +103,7 @@ export const helloWorkflow = helloReceived.then(sayHello)
 
 export const workflows = [helloWorkflow] as const
 `,
-  "src/worker.ts": `import { createTriggerApp } from "libclank/cloudflare"
+  "worker/index.ts": `import { createTriggerApp } from "libclank/cloudflare"
 import { createScheduler, SchedulerObservers } from "libclank/core"
 import { workflows } from "../workflows/index.js"
 
@@ -120,8 +120,8 @@ export default {
   },
 }
 `,
-  "src/worker.test.ts": `import { describe, expect, it } from "vitest"
-import worker from "./worker.js"
+  "worker/worker.test.ts": `import { describe, expect, it } from "vitest"
+import worker from "./index.js"
 
 describe("Worker", () => {
   it("runs the hello workflow", async () => {
@@ -144,7 +144,7 @@ describe("Worker", () => {
 
 export default defineConfig({
   test: {
-    include: ["src/**/*.test.ts"],
+    include: ["worker/**/*.test.ts"],
   },
 })
 `,
@@ -159,13 +159,13 @@ export default defineConfig({
     "skipLibCheck": true,
     "types": []
   },
-  "include": ["src/**/*.ts", "worker-configuration.d.ts"]
+  "include": ["agents/**/*.ts", "tasks/**/*.ts", "triggers/**/*.ts", "workflows/**/*.ts", "worker/**/*.ts"]
 }
 `,
-  "wrangler.jsonc": `{
-  "$schema": "./node_modules/wrangler/config-schema.json",
+  "worker/wrangler.jsonc": `{
+  "$schema": "../node_modules/wrangler/config-schema.json",
   "name": "__WORKER_NAME__",
-  "main": "src/worker.ts",
+  "main": "index.ts",
   "compatibility_date": "__DATE__",
   "workers_dev": true,
   "observability": {
@@ -180,9 +180,9 @@ export default defineConfig({
 const exampleWorkflowFiles = new Set(["tasks/say-hello.ts", "triggers/hello.ts", "workflows/hello.ts"])
 
 const defaultScripts = {
-  dev: "wrangler dev",
-  deploy: "wrangler deploy",
-  typecheck: "wrangler types && tsc --noEmit",
+  dev: "wrangler dev --config worker/wrangler.jsonc",
+  deploy: "wrangler deploy --config worker/wrangler.jsonc",
+  typecheck: "wrangler types worker/worker-configuration.d.ts --config worker/wrangler.jsonc && tsc --noEmit",
   test: "vitest run",
   libclank: "bun ./node_modules/libclank/bin/libclank.ts",
 }
