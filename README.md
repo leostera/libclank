@@ -79,7 +79,7 @@ The scheduler persists workflow metadata, node instances, inputs, outputs, attem
 LibClank is a private GitHub-hosted JavaScript package. Install a versioned tag over SSH (you need GitHub SSH access to `leostera/libclank`):
 
 ```bash
-bun add "git+ssh://git@github.com/leostera/libclank.git#v0.1.0"
+bun add --trust "git+ssh://git@github.com/leostera/libclank.git#v0.1.1"
 ```
 
 Import the supported package entry points explicitly:
@@ -89,9 +89,9 @@ import { Id, Task, Triggers } from "libclank/core"
 import { createTriggerApp } from "libclank/cloudflare"
 ```
 
-The Git dependency's `prepare` script builds the distributable workspace packages before Bun installs them. Keep consumer lockfiles committed so deployments stay pinned to the resolved commit behind the tag. React and React DOM are peer dependencies for `libclank/ui`; install them in apps that use that entry point.
+The Git dependency's trusted `prepare` script installs its workspace build dependencies and builds the distributable packages before Bun installs them. `bun add --trust` records that trust in the consuming project's `package.json`. Keep consumer lockfiles committed so deployments stay pinned to the resolved commit behind the tag. React and React DOM are peer dependencies for `libclank/ui`; install them in apps that use that entry point.
 
-LibClank requires Bun 1.3.11 or newer for dependency preparation and workspace builds. For contributors developing both repositories, a local `file:../libclank` dependency remains useful; applications intended to install independently should use a version tag as above.
+LibClank requires Bun 1.4.2 or newer for dependency preparation and workspace builds. For contributors developing both repositories, a local `file:../libclank` dependency remains useful; applications intended to install independently should use a version tag as above.
 
 ## Try an example
 
