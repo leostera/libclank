@@ -95,10 +95,16 @@ LibClank requires Bun 1.4.2 or newer for dependency preparation and workspace bu
 
 ## Scaffold an application
 
-From an existing LibClank application, use the CLI to initialize a new Bun + Cloudflare Worker project:
+From an existing LibClank application, use the installed CLI:
 
 ```bash
 bun run libclank new ../my-worker
+```
+
+Or run it directly from the public GitHub repository without adding LibClank to the current project:
+
+```bash
+bunx --package "git+https://github.com/leostera/libclank.git#v0.1.8" libclank new ../my-worker
 ```
 
 The command adds missing files without replacing existing application code. It creates root-level `agents/`, `tasks/`, `triggers/`, and `workflows/` directories, including an Agent task factory that accepts an application-owned `AgentEndpoint`, plus a `worker/` directory for the Worker entrypoint, Wrangler/Vitest/TypeScript config, tests, and Bun scripts. The example uses the eager in-memory scheduler; choose a durable runtime before relying on persisted runs.
