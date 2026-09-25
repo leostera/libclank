@@ -1,5 +1,5 @@
 import { BrowserRouter, NavLink, Route, Routes } from "react-router"
-import { useEffect, useState } from "react"
+import { useEffect, useState, type ReactElement } from "react"
 import "./clanker-dashboard.css"
 
 type Workflow = { readonly id: string; readonly triggers: readonly { readonly id: string; readonly path?: string }[] }
@@ -11,7 +11,7 @@ export interface ClankerDashboardProps {
 }
 
 /** Reusable LibClank operations console. Applications supply only their API base and title. */
-export const ClankerDashboard = ({ apiBase = "/api", title = "Clanker" }: ClankerDashboardProps) => (
+export const ClankerDashboard = ({ apiBase = "/api", title = "Clanker" }: ClankerDashboardProps): ReactElement => (
   <BrowserRouter>
     <div className="clanker-shell">
       <header className="clanker-masthead">

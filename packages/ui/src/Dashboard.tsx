@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { useEffect, useState } from "react"
+import { useEffect, useState, type ReactElement } from "react"
 
 const Run = Schema.Struct({ id: Schema.String, status: Schema.String, createdAt: Schema.Number })
 const Workflow = Schema.Struct({
@@ -15,7 +15,7 @@ export interface DashboardProps {
 }
 
 /** React operational dashboard. It only reads and operates on existing runs. */
-export const Dashboard = ({ apiBase = "/api" }: DashboardProps) => {
+export const Dashboard = ({ apiBase = "/api" }: DashboardProps): ReactElement => {
   const [runs, setRuns] = useState<readonly Run[]>([])
   const [workflows, setWorkflows] = useState<readonly Workflow[]>([])
   const [input, setInput] = useState('{"url":"https://example.com"}')

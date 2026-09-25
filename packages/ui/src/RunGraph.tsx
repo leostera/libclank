@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type ReactElement } from "react"
 import { Background, Controls, ReactFlow, type Edge, type Node as FlowNode } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
 
@@ -38,7 +38,7 @@ export interface RunGraphProps {
 }
 
 /** React Flow execution graph. It is read-only and reflects persisted node state. */
-export const RunGraph = ({ runId, apiBase = "/api" }: RunGraphProps) => {
+export const RunGraph = ({ runId, apiBase = "/api" }: RunGraphProps): ReactElement => {
   const [run, setRun] = useState<Run>()
   const [manifest, setManifest] = useState<Manifest>()
   const [instances, setInstances] = useState<readonly Instance[]>([])
