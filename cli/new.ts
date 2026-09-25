@@ -32,7 +32,7 @@ The example webhook is available at \`POST /api/hello\`. The starter uses LibCla
 - \`tasks/\` — reusable units of work.
 - \`triggers/\` — webhook, manual, and scheduled workflow inputs.
 - \`workflows/\` — workflow compositions and workflow registry.
-- \`worker/\` — Worker entrypoint, Wrangler config, tests, and generated binding types.
+- \`worker/\` — Worker entrypoint, Wrangler config, tests, TypeScript/Vitest config, and generated binding types.
 
 Add new files in those root-level directories, then register each workflow in \`workflows/index.ts\`.
 
@@ -140,15 +140,17 @@ describe("Worker", () => {
   })
 })
 `,
-  "vitest.config.ts": `import { defineConfig } from "vitest/config"
+  "worker/vitest.config.ts": `import { fileURLToPath } from "node:url"
+import { defineConfig } from "vitest/config"
 
 export default defineConfig({
+  root: fileURLToPath(new URL(".", import.meta.url)),
   test: {
-    include: ["worker/**/*.test.ts"],
+    include: ["**/*.test.ts"],
   },
 })
 `,
-  "tsconfig.json": `{
+  "worker/tsconfig.json": `{
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
@@ -159,7 +161,7 @@ export default defineConfig({
     "skipLibCheck": true,
     "types": []
   },
-  "include": ["agents/**/*.ts", "tasks/**/*.ts", "triggers/**/*.ts", "workflows/**/*.ts", "worker/**/*.ts"]
+  "include": ["../agents/**/*.ts", "../tasks/**/*.ts", "../triggers/**/*.ts", "../workflows/**/*.ts", "**/*.ts"]
 }
 `,
   "worker/wrangler.jsonc": `{
@@ -182,8 +184,9 @@ const exampleWorkflowFiles = new Set(["tasks/say-hello.ts", "triggers/hello.ts",
 const defaultScripts = {
   dev: "wrangler dev --config worker/wrangler.jsonc",
   deploy: "wrangler deploy --config worker/wrangler.jsonc",
-  typecheck: "wrangler types worker/worker-configuration.d.ts --config worker/wrangler.jsonc && tsc --noEmit",
-  test: "vitest run",
+  typecheck:
+    "wrangler types worker/worker-configuration.d.ts --config worker/wrangler.jsonc && tsc --project worker/tsconfig.json --noEmit",
+  test: "vitest run --config worker/vitest.config.ts",
   libclank: "bun ./node_modules/libclank/bin/libclank.ts",
 }
 
