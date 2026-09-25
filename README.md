@@ -79,7 +79,7 @@ The scheduler persists workflow metadata, node instances, inputs, outputs, attem
 LibClank is available from its public GitHub repository. Install a versioned tag over HTTPS:
 
 ```bash
-bun add --trust "git+https://github.com/leostera/libclank.git#v0.1.3"
+bun add --trust "git+https://github.com/leostera/libclank.git#v0.1.4"
 ```
 
 Import the supported package entry points explicitly:
@@ -93,9 +93,19 @@ The Git dependency's trusted `prepare` script installs its workspace build depen
 
 LibClank requires Bun 1.4.2 or newer for dependency preparation and workspace builds. For contributors developing both repositories, a local `file:../libclank` dependency remains useful; applications intended to install independently should use a version tag as above.
 
+## Scaffold an application
+
+From an existing LibClank application, use the CLI to initialize a new Bun + Cloudflare Worker project:
+
+```bash
+bun run libclank new ../my-worker
+```
+
+The command adds missing files without replacing existing application code. It creates `src/agents`, `src/tasks`, `src/triggers`, and `src/workflows`, including an Agent task factory that accepts an application-owned `AgentEndpoint`, plus a Worker entrypoint, starter tests, and Bun scripts. The example uses the eager in-memory scheduler; choose a durable runtime before relying on persisted runs.
+
 ## Try an example
 
-LibClank uses Bun 1.3.11 (declared in `package.json` and locked by `bun.lock`).
+LibClank uses Bun 1.4.2 (declared in `package.json` and locked by `bun.lock`).
 
 ```bash
 bun install --frozen-lockfile
