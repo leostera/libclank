@@ -76,10 +76,10 @@ The scheduler persists workflow metadata, node instances, inputs, outputs, attem
 
 ## Install LibClank from GitHub
 
-LibClank is available as a built Bun package directly from its public GitHub repository. Add a versioned tag over HTTPS:
+LibClank is available as a built Bun package directly from its public GitHub repository:
 
 ```bash
-bun add "git+https://github.com/leostera/libclank.git#v0.1.10"
+bun add github:leostera/libclank
 ```
 
 Import the supported package entry points explicitly:
@@ -89,9 +89,9 @@ import { Id, Task, Triggers } from "libclank/core"
 import { createTriggerApp } from "libclank/cloudflare"
 ```
 
-The repository tracks its built CLI, JavaScript API, declarations, and dashboard under root `dist/`, so Git installs do not need a lifecycle build or registry access. Keep consumer lockfiles committed so deployments stay pinned to the resolved commit behind the tag. React and React DOM are peer dependencies for `libclank/ui`; install them in apps that use that entry point.
+The repository tracks its built CLI, JavaScript API, declarations, and dashboard under root `dist/`, so Git installs do not need a lifecycle build or registry access. Commit `bun.lock` to keep installs pinned to the resolved Git commit. React and React DOM are peer dependencies for `libclank/ui`; install them in apps that use that entry point.
 
-LibClank requires Bun 1.4.2 or newer. For contributors developing both repositories, a local `file:../libclank` dependency remains useful; applications intended to install independently should use a version tag as above.
+LibClank requires Bun 1.4.2 or newer. For contributors developing both repositories, a local `file:../libclank` dependency remains useful; for production deployments, you can pin the Git dependency to a release tag instead of the default branch.
 
 ## Scaffold an application
 
@@ -104,7 +104,7 @@ bun run libclank new ../my-worker
 Or run the CLI directly from the public GitHub repository without adding LibClank to the current project:
 
 ```bash
-bunx https://github.com/leostera/libclank.git new ../my-worker
+bunx github:leostera/libclank new ../my-worker
 ```
 
 The command adds missing files without replacing existing application code. It creates root-level `agents/`, `tasks/`, `triggers/`, and `workflows/` directories, including an Agent task factory that accepts an application-owned `AgentEndpoint`, plus a `worker/` directory for the Worker entrypoint, Wrangler/Vitest/TypeScript config, tests, and Bun scripts. The example uses the eager in-memory scheduler; choose a durable runtime before relying on persisted runs.
